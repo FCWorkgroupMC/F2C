@@ -1,4 +1,4 @@
-package cn.xiaopangxie732.f2c;
+package io.github.fcworkgroupmc.f2c.f2c;
 
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;

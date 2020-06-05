@@ -41,10 +41,7 @@ public class FabricModTransformationService implements ITransformationService {
 					JarFile jarFile = new JarFile(modPath.toFile());
 					ZipEntry entry = jarFile.getEntry("fabric.mod.json");
 					jarFile.close();
-					if(entry == null)
-						return;
-					else
-						modPath.toFile().renameTo(new File(modPath.toString().replace(".jar", FABRIC_MOD_SUFFIX)));
+					if(entry != null) modPath.toFile().renameTo(new File(modPath.toString().replace(".jar", FABRIC_MOD_SUFFIX)));
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

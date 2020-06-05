@@ -1,6 +1,5 @@
 package io.github.fcworkgroupmc.f2c.f2c;
 
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;

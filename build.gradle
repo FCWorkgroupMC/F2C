@@ -1,11 +1,61 @@
+/*
+ *  Copyright (C) 2020  FCWorkgroupMC
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
+    }
+}
 subprojects {
+    apply plugin: 'net.minecraftforge.gradle'
     // Only edit below this line, the above code adds and enables the necessary things for Forge to be setup.
+    apply plugin: 'idea'
     apply plugin: 'maven-publish'
 
-	group = 'cn.xiaopangxie732' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+	group = 'io.github.fcworkgroupmc.f2c'
 
     repositories {
         mavenCentral()
         maven { url = 'https://maven.fabricmc.net' }
+    }
+
+    dependencies {
+        // You may put jars on which you depend on in ./libs or you may define them like so..
+        // compile "some.group:artifact:version:classifier"
+        // compile "some.group:artifact:version"
+        compileOnly 'org.spongepowered:mixin:0.8'
+
+        // Real examples
+        // compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
+        // compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
+
+        // The 'provided' configuration is for optional dependencies that exist at compile-time but might not at runtime.
+        // provided 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+        // These dependencies get remapped to your current MCP mappings
+        // deobf 'com.mod-buildcraft:buildcraft:6.0.8:dev'
+
+        // For more info...
+        // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+        // http://www.gradle.org/docs/current/userguide/dependency_management.html
     }
 }

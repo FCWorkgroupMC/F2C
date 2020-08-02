@@ -21,29 +21,32 @@ import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.ITransformationService;
 import cpw.mods.modlauncher.api.ITransformer;
 import cpw.mods.modlauncher.api.IncompatibleEnvironmentException;
+import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.launch.common.FabricLauncherBase;
+import net.fabricmc.loader.launch.knot.Knot;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 
 public class FabricModTransformationService implements ITransformationService {
 	public static final String FABRIC_MOD_SUFFIX = ".fabricmod";
 	public static final String JAR_SUFFIX = ".jar";
+	/** fabric mod definition(fabric.mod.json) */
 	public static final String FABRIC_MOD_DEF = "fabric.mod.json";
 	private static final Logger LOGGER = LogManager.getLogger();
+
+	public static FabricModTransformationService instance;
+	private List<Path> fabricMods = new ArrayList<>();
 	@Nonnull
 	@Override
 	public String name() {
@@ -53,67 +56,62 @@ public class FabricModTransformationService implements ITransformationService {
 	@Override
 	public void initialize(IEnvironment environment) {
 		try {
-			Path modsDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(Paths.get(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getParent()).
-					resolve(FMLPaths.MODSDIR.relative());
+			Path modsDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(FMLPaths.MODSDIR.relative());
 			if(Files.exists(modsDir)) {
 				Files.walk(modsDir, 1).filter(path -> path.endsWith(JAR_SUFFIX)).forEach(modPath -> {
+					ZipEntry entry = null;
 					try(JarFile jarFile = new JarFile(modPath.toFile())) {
-						ZipEntry entry = jarFile.getEntry(FABRIC_MOD_DEF);
-						if(entry != null) modPath.toFile().renameTo(new File(modPath.toString().replace(JAR_SUFFIX, FABRIC_MOD_SUFFIX)));
+						entry = jarFile.getEntry(FABRIC_MOD_DEF);
 					} catch (IOException e) {
-						e.printStackTrace();
+						LOGGER.catching(Level.ERROR, e);
+					}
+					if(entry != null) {
+						Path target = modPath.getParent().resolve(modPath.getFileName().toString().replace(JAR_SUFFIX, FABRIC_MOD_SUFFIX));
+						try {
+							Files.move(modPath, target);
+						} catch (IOException e) {
+							LOGGER.catching(Level.FATAL, e);
+						}
+						fabricMods.add(target);
 					}
 				});
-				Runtime.getRuntime().addShutdownHook(new ShutdownRenameThread(modsDir));
+				Runtime.getRuntime().addShutdownHook(new Thread(() -> fabricMods.forEach(p -> {
+					try {
+						Files.move(p, p.getParent().resolve(p.getFileName().toString().replace(FABRIC_MOD_SUFFIX, JAR_SUFFIX)));
+					} catch (IOException e) {
+						LOGGER.catching(Level.WARN, e);
+					}
+				})));
 			}
 		} catch (Exception e) {
-			LOGGER.error("An error occurred when changing fabric mod suffix", e);
+			LOGGER.error("error occurred when initializing f2c service " + e);
 		}
-	}
-
-	private static class ShutdownRenameThread extends Thread {
-		private Path modsDir;
-		public ShutdownRenameThread(Path modsDir) {
-			this.modsDir = modsDir;
-		}
-		@Override
-		public void run() {
-			try {
-				if(Files.exists(modsDir)) {
-					Files.walk(modsDir, 1).filter(path -> path.endsWith(FABRIC_MOD_SUFFIX)).
-							forEach(path -> path.toFile().renameTo(new File(path.toString().replace(FABRIC_MOD_SUFFIX, JAR_SUFFIX))));
-				}
-			} catch (IOException e) {
-				LOGGER.catching(Level.WARN, e);
-			}
-		}
+		String launchTarget = environment.getProperty(IEnvironment.Keys.LAUNCHTARGET.get()).orElse("client");
+		new Knot(launchTarget.contains("server") ? EnvType.SERVER : EnvType.CLIENT, null).init();
 	}
 
 	@Override
-	public void beginScanning(IEnvironment environment) {
-		LOGGER.fatal(environment.getProperty(IEnvironment.Keys.NAMING.get()));
-		try {
-			Path gameDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(Paths.get(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getParent());
-			Path modsDir = gameDir.resolve(FMLPaths.MODSDIR.relative());
-			if(Files.exists(modsDir)) {
-				Files.walk(modsDir, 1).filter(path -> path.endsWith(FABRIC_MOD_SUFFIX)).forEach(path -> {
-					try (JarFile jarFile = new JarFile(path.toFile())) {
-						ZipEntry entry = jarFile.getEntry("fabric.mod.json");
-						if (entry != null) {
+	public void beginScanning(IEnvironment environment) {}
 
-						}
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				});
-			}
-		} catch (IOException | URISyntaxException e) {
-			e.printStackTrace();
+	@Override
+	public List<Map.Entry<String, Path>> runScan(IEnvironment environment) {
+		beginScanning(environment);
+		if(!fabricMods.isEmpty()) {
+			FabricLoader loader = FabricLoader.INSTANCE;
+			loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
+			loader.loadMods();
+			loader.endModLoading();
+
 		}
+		return Collections.emptyList();
 	}
 
 	@Override
-	public void onLoad(IEnvironment env, Set<String> otherServices) throws IncompatibleEnvironmentException {}
+	public void onLoad(IEnvironment env, Set<String> otherServices) throws IncompatibleEnvironmentException {
+		instance = this;
+		if(!otherServices.contains("fml")) throw new IncompatibleEnvironmentException(name() + " requires Forge to load");
+	}
+
 	@Nonnull
 	@Override
 	public List<ITransformer> transformers() {return Collections.emptyList();}

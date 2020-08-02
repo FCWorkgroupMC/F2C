@@ -17,18 +17,16 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
-import net.minecraft.util.SharedConstants;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 
-@Mod("f2c")
-public class F2C {
-	public F2C() {
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
-	}
-	public void setup(FMLCommonSetupEvent event) {
-		FMLClientSetupEvent e = null;
+public class Metadata {
+	public static Proxy proxy;
+
+	static {
+		String host = System.getProperty("f2c.proxyHost");
+		String port = System.getProperty("f2c.proxyPort");
+		proxy = port == null ? Proxy.NO_PROXY : new Proxy(Proxy.Type.HTTP,
+				host == null ? new InetSocketAddress(Integer.parseInt(port)) : new InetSocketAddress(host, Integer.parseInt(port)));
 	}
 }

@@ -17,6 +17,8 @@
 
 package io.github.fcworkgroupmc.f2c.f2c.fabric;
 
+import cpw.mods.modlauncher.Launcher;
+import cpw.mods.modlauncher.api.INameMappingService;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.EntrypointStorage;
 import net.fabricmc.loader.FabricMappingResolver;
@@ -31,6 +33,7 @@ import net.fabricmc.loader.gui.FabricGuiEntry;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.metadata.EntrypointMetadata;
 import net.fabricmc.loader.metadata.LoaderModMetadata;
+import net.fabricmc.loader.transformer.accesswidener.AccessWidener;
 import net.fabricmc.loader.util.DefaultLanguageAdapter;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.logging.log4j.LogManager;
@@ -40,6 +43,8 @@ import java.io.File;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // F2C - reimplement net.fabricmc.loader.api.FabricLoader and delete net.fabricmc.loader.FabricLoader
@@ -53,12 +58,15 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	private boolean lockLoading;
 	private MappingResolver mappingResolver;
 	private Object gameInstance;
+	private AccessWidener accessWidener = new AccessWidener(this);
 
 	private final Map<String, ModContainer> modMap = new HashMap<>();
 	private List<ModContainer> mods = new ArrayList<>();
 
 	private final Map<String, LanguageAdapter> adapterMap = new HashMap<>();
 	private final EntrypointStorage entrypointStorage = new EntrypointStorage();
+
+	public static final BiFunction<INameMappingService.Domain, String, String> remapFunc = Launcher.INSTANCE.environment().findNameMapping("intermediary").get();
 
 	@Override
 	public <T> List<T> getEntrypoints(String key, Class<T> type) {
@@ -153,6 +161,9 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 
 		this.gameInstance = gameInstance;
 	}
+	public AccessWidener getAccessWidener() {
+		return accessWidener;
+	}
 
 	public void loadMods() {
 		if(provider == null) throw new RuntimeException("You must to set game provider!");
@@ -160,8 +171,10 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 
 		try {
 			ModResolver resolver = new ModResolver();
-			resolver.addCandidateFinder(new ClasspathModCandidateFinder());
-			resolver.addCandidateFinder(new DirectoryModCandidateFinder(getGameDir().resolve(FMLPaths.MODSDIR.relative())));
+			// F2C - Remove ClasspathModCandidateFinder and DirectoryModCandidateFinder, use ListModCandidateFinder instead
+//			resolver.addCandidateFinder(new ClasspathModCandidateFinder());
+//			resolver.addCandidateFinder(new DirectoryModCandidateFinder(getGameDir().resolve(FMLPaths.MODSDIR.relative())));
+			resolver.addCandidateFinder(new ListModCandidateFinder());
 			Map<String, ModCandidate> candidateMap = resolver.resolve(this);
 
 			String modText;

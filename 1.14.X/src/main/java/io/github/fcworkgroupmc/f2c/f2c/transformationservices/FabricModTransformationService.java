@@ -22,6 +22,7 @@ import cpw.mods.modlauncher.api.ITransformationService;
 import cpw.mods.modlauncher.api.ITransformer;
 import cpw.mods.modlauncher.api.IncompatibleEnvironmentException;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
+import io.github.fcworkgroupmc.f2c.f2c.transformers.EntryPointBrandingTransformer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.launch.knot.Knot;
@@ -35,7 +36,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Function;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
 public class FabricModTransformationService implements ITransformationService {
@@ -46,7 +49,7 @@ public class FabricModTransformationService implements ITransformationService {
 	private static final Logger LOGGER = LogManager.getLogger();
 
 	public static FabricModTransformationService instance;
-	private List<Path> fabricMods = new ArrayList<>();
+	public final List<Path> fabricMods = new ArrayList<>();
 	@Nonnull
 	@Override
 	public String name() {
@@ -101,7 +104,7 @@ public class FabricModTransformationService implements ITransformationService {
 			loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
 			loader.loadMods();
 			loader.endModLoading();
-
+			return fabricMods.stream().map(path -> new AbstractMap.SimpleEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
 		return Collections.emptyList();
 	}
@@ -109,10 +112,11 @@ public class FabricModTransformationService implements ITransformationService {
 	@Override
 	public void onLoad(IEnvironment env, Set<String> otherServices) throws IncompatibleEnvironmentException {
 		instance = this;
-		if(!otherServices.contains("fml")) throw new IncompatibleEnvironmentException(name() + " requires Forge to load");
+		if(!otherServices.contains("fml") || !otherServices.contains("mixin"))
+			throw new IncompatibleEnvironmentException(name() + " requires Forge and Mixin(or MixinBootstrap mod) to load");
 	}
 
 	@Nonnull
 	@Override
-	public List<ITransformer> transformers() {return Collections.emptyList();}
+	public List<ITransformer> transformers() {return Collections.singletonList(new EntryPointBrandingTransformer());}
 }

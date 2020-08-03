@@ -17,18 +17,38 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
-import net.minecraft.util.SharedConstants;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.api.DedicatedServerModInitializer;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.entrypoint.minecraft.hooks.EntrypointUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.dedicated.DedicatedServer;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 @Mod("f2c")
 public class F2C {
 	public F2C() {
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::setup);
+		IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+		modEventBus.addListener(this::setupClient);
+		modEventBus.addListener(this::setupServer);
 	}
-	public void setup(FMLCommonSetupEvent event) {
-		FMLClientSetupEvent e = null;
+	private void setupClient(FMLClientSetupEvent event) {
+		Minecraft mc = event.getMinecraftSupplier().get();
+
+		net.fabricmc.loader.FabricLoader.INSTANCE.prepareModInit(mc.gameDir.toPath(), mc);
+		EntrypointUtils.invoke("main", ModInitializer.class, ModInitializer::onInitialize);
+		EntrypointUtils.invoke("client", ClientModInitializer.class, ClientModInitializer::onInitializeClient);
+	}
+	private void setupServer(FMLDedicatedServerSetupEvent event) {
+		DedicatedServer server = event.getServerSupplier().get();
+
+		net.fabricmc.loader.FabricLoader.INSTANCE.prepareModInit(FMLPaths.GAMEDIR.get(), server);
+		EntrypointUtils.invoke("main", ModInitializer.class, ModInitializer::onInitialize);
+		EntrypointUtils.invoke("server", DedicatedServerModInitializer.class, DedicatedServerModInitializer::onInitializeServer);
 	}
 }

@@ -17,6 +17,7 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
+import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.ModInitializer;
@@ -40,14 +41,14 @@ public class F2C {
 	private void setupClient(FMLClientSetupEvent event) {
 		Minecraft mc = event.getMinecraftSupplier().get();
 
-		net.fabricmc.loader.FabricLoader.INSTANCE.prepareModInit(mc.gameDir.toPath(), mc);
+		FabricLoader.INSTANCE.prepareModInit(mc.gameDir.toPath(), mc);
 		EntrypointUtils.invoke("main", ModInitializer.class, ModInitializer::onInitialize);
 		EntrypointUtils.invoke("client", ClientModInitializer.class, ClientModInitializer::onInitializeClient);
 	}
 	private void setupServer(FMLDedicatedServerSetupEvent event) {
 		DedicatedServer server = event.getServerSupplier().get();
 
-		net.fabricmc.loader.FabricLoader.INSTANCE.prepareModInit(FMLPaths.GAMEDIR.get(), server);
+		FabricLoader.INSTANCE.prepareModInit(FMLPaths.GAMEDIR.get(), server);
 		EntrypointUtils.invoke("main", ModInitializer.class, ModInitializer::onInitialize);
 		EntrypointUtils.invoke("server", DedicatedServerModInitializer.class, DedicatedServerModInitializer::onInitializeServer);
 	}

@@ -20,22 +20,43 @@ package io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric;
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
 import net.fabricmc.loader.entrypoint.minecraft.hooks.EntrypointUtils;
+import net.fabricmc.loader.launch.common.FabricLauncherBase;
+import net.fabricmc.loader.transformer.ClassStripper;
+import net.fabricmc.loader.transformer.EnvironmentStrippingData;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.nio.file.Path;
 import java.util.EnumSet;
 
+import static io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.AccessWidenerLaunchPlugin.*;
+
 public class PreLaunchEntrypointLaunchPlugin implements ILaunchPluginService {
 	@Override
 	public String name() {
-		return "prelaunchentrypointinvoker";
+		return "prelaunch_entrypoint_invoker";
 	}
 
 	@Override
-	public EnumSet<Phase> handlesClass(Type classType, boolean isEmpty) { return EnumSet.noneOf(Phase.class); }
+	public EnumSet<Phase> handlesClass(Type classType, boolean isEmpty) {
+		boolean isMinecraftClass = classType.getClassName().startsWith("net.minecraft.") || classType.getClassName().indexOf('.') < 0;
+		return isMinecraftClass ? N : Y;
+	}
 	@Override
-	public boolean processClass(Phase phase, ClassNode classNode, Type classType) { return false; }
+	public boolean processClass(Phase phase, ClassNode classNode, Type classType) {
+		EnvironmentStrippingData stripData = new EnvironmentStrippingData(Opcodes.ASM8, FabricLauncherBase.getLauncher().getEnvironmentType().toString());
+		classNode.accept(stripData);
+		if (stripData.stripEntireClass()) {
+			throw new RuntimeException("Cannot load class " + classType.getClassName() + " in environment type " + FabricLauncherBase.getLauncher().getEnvironmentType());
+		}
+		if (!stripData.isEmpty()) {
+			classNode.accept(new ClassStripper(Opcodes.ASM8, classNode, stripData.getStripInterfaces(), stripData.getStripFields(), stripData.getStripMethods()));
+			return true;
+		}
+		return false;
+	}
 
 	@Override
 	public void initializeLaunch(ITransformerLoader transformerLoader, Path[] specialPaths) {

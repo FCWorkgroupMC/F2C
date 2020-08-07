@@ -35,7 +35,9 @@ subprojects {
 
     repositories {
         mavenCentral()
+        maven { url = "https://repo.spongepowered.org/maven" }
         maven { url = 'https://maven.fabricmc.net' }
+        maven { url = "https://dl.bintray.com/lxgaming/maven" }
         flatDir {
             dirs 'libs'
         }
@@ -47,6 +49,7 @@ subprojects {
         // compile "some.group:artifact:version"
         compileOnly 'org.spongepowered:mixin:0.8'
 
+        implementation 'io.github.lxgaming:classloaderutils:1.0.0'
         implementation name: 'srgutils-0.2.12'
 
         implementation 'net.fabricmc:fabric-loader-sat4j:2.3.5.4'

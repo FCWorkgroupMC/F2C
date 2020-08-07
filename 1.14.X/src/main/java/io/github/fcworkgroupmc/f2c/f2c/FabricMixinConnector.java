@@ -17,11 +17,33 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
+import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.api.ModContainer;
+import net.fabricmc.loader.launch.common.FabricLauncherBase;
+import net.fabricmc.loader.metadata.LoaderModMetadata;
+import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.connect.IMixinConnector;
+
+import java.util.stream.Collectors;
 
 public class FabricMixinConnector implements IMixinConnector {
 	@Override
 	public void connect() {
+		FabricLoader loader = FabricLoader.INSTANCE;
+		loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
+		loader.loadMods();
+		loader.endModLoading();
 
+		FabricLoader.INSTANCE.getAccessWidener().loadFromMods();
+
+		// F2C - Remove net.fabricmc.loader.launch.common.FabricMixinBootstrap
+		EnvType envType = FabricLauncherBase.getLauncher().getEnvironmentType();
+		FabricLoader.INSTANCE.getAllMods().stream()
+				.map(ModContainer::getMetadata)
+				.filter((m) -> m instanceof LoaderModMetadata)
+				.flatMap((m) -> ((LoaderModMetadata) m).getMixinConfigs(envType).stream())
+				.filter(s -> s != null && !s.isEmpty())
+				.collect(Collectors.toSet()).forEach(Mixins::addConfiguration);
 	}
 }

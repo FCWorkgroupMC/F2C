@@ -20,7 +20,9 @@ package io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric;
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import net.fabricmc.loader.transformer.accesswidener.AccessWidener;
+import net.fabricmc.loader.transformer.accesswidener.AccessWidenerVisitor;
 import net.fabricmc.mappings.EntryTriple;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
@@ -30,11 +32,11 @@ import java.util.*;
 public class AccessWidenerLaunchPlugin implements ILaunchPluginService {
 	@Override
 	public String name() {
-		return "accesswidener";
+		return "access_widener";
 	}
 
-	private static final EnumSet<Phase> Y = EnumSet.of(Phase.BEFORE);
-	private static final EnumSet<Phase> N = EnumSet.noneOf(Phase.class);
+	static final EnumSet<Phase> Y = EnumSet.of(Phase.BEFORE);
+	static final EnumSet<Phase> N = EnumSet.noneOf(Phase.class);
 	@Override
 	public EnumSet<Phase> handlesClass(Type classType, boolean isEmpty) {
 		return classType.getClassName().startsWith("net.minecraft.")
@@ -45,11 +47,7 @@ public class AccessWidenerLaunchPlugin implements ILaunchPluginService {
 
 	@Override
 	public boolean processClass(Phase phase, ClassNode classNode, Type classType) {
-		return false;
-	}
-
-	@Override
-	public void initializeLaunch(ITransformerLoader transformerLoader, Path[] specialPaths) {
-
+		classNode.accept(new AccessWidenerVisitor(Opcodes.ASM8, classNode, FabricLoader.INSTANCE.getAccessWidener()));
+		return true;
 	}
 }

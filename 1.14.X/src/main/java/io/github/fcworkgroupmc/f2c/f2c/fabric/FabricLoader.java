@@ -38,8 +38,10 @@ import net.fabricmc.loader.util.DefaultLanguageAdapter;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.spongepowered.asm.mixin.transformer.FabricMixinTransformerProxy;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
@@ -55,7 +57,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 
 	private GameProvider provider;
 	private Path gameDir;
-	private boolean lockLoading;
+	public boolean lockLoading;
 	private MappingResolver mappingResolver;
 	private Object gameInstance;
 	private AccessWidener accessWidener = new AccessWidener(this);
@@ -66,7 +68,12 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	private final Map<String, LanguageAdapter> adapterMap = new HashMap<>();
 	private final EntrypointStorage entrypointStorage = new EntrypointStorage();
 
-	public static final BiFunction<INameMappingService.Domain, String, String> remapFunc = Launcher.INSTANCE.environment().findNameMapping("intermediary").get();
+	private static boolean funcReady;
+	public static BiFunction<INameMappingService.Domain, String, String> remapFunc;
+	public static void funcReady() {
+		funcReady = true;
+		remapFunc = Launcher.INSTANCE.environment().findNameMapping("intermediary").get();
+	}
 
 	@Override
 	public <T> List<T> getEntrypoints(String key, Class<T> type) {
@@ -117,7 +124,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 
 	@Override
 	public Object getGameInstance() {
-		return null;
+		return gameInstance;
 	}
 
 	@Override
@@ -150,19 +157,11 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	public Logger getLogger() {
 		return LOGGER;
 	}
-	public void setGameInstance(Object gameInstance) {
-		if (this.getEnvironmentType() != EnvType.SERVER) {
-			throw new UnsupportedOperationException("Cannot set game instance on a client!");
-		}
-
-		if (this.gameInstance != null) {
-			throw new UnsupportedOperationException("Cannot overwrite current game instance!");
-		}
-
-		this.gameInstance = gameInstance;
-	}
 	public AccessWidener getAccessWidener() {
 		return accessWidener;
+	}
+	public boolean hasEntrypoints(String key) {
+		return entrypointStorage.hasEntrypoints(key);
 	}
 
 	public void loadMods() {
@@ -171,8 +170,8 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 
 		try {
 			ModResolver resolver = new ModResolver();
-			// F2C - Remove ClasspathModCandidateFinder and DirectoryModCandidateFinder, use ListModCandidateFinder instead
-//			resolver.addCandidateFinder(new ClasspathModCandidateFinder());
+			// F2C - Remove DirectoryModCandidateFinder, use ListModCandidateFinder instead
+			resolver.addCandidateFinder(new ClasspathModCandidateFinder());
 //			resolver.addCandidateFinder(new DirectoryModCandidateFinder(getGameDir().resolve(FMLPaths.MODSDIR.relative())));
 			resolver.addCandidateFinder(new ListModCandidateFinder());
 			Map<String, ModCandidate> candidateMap = resolver.resolve(this);
@@ -259,5 +258,41 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 				throw new RuntimeException(String.format("Failed to setup mod %s (%s)", mod.getInfo().getName(), mod.getOriginUrl().getFile()), e);
 			}
 		}
+	}
+
+	public void prepareModInit(Path newRunDir, Object gameInstance) {
+		if (!lockLoading) {
+			throw new RuntimeException("Cannot instantiate mods when loading is unlocked!");
+		}
+
+		this.gameInstance = gameInstance;
+
+		if (gameDir != null) {
+			try {
+				if (!gameDir.toRealPath().equals(newRunDir.toRealPath())) {
+					getLogger().warn("Inconsistent game execution directories: engine says " + newRunDir.toRealPath() + ", while initializer says " + gameDir.toRealPath() + "...");
+					this.gameDir = newRunDir;
+				}
+			} catch (IOException e) {
+				getLogger().warn("Exception while checking game execution directory consistency!", e);
+			}
+		} else {
+			this.gameDir = newRunDir;
+		}
+	}
+
+	// Deprecated methods
+	/**
+	 * @return A list of all loaded mods, as ModContainers.
+	 * @deprecated Use {@link net.fabricmc.loader.api.FabricLoader#getAllMods()}
+	 */
+	@Deprecated
+	public Collection<ModContainer> getModContainers() {
+		return Collections.unmodifiableList(mods);
+	}
+
+	@Deprecated
+	public List<ModContainer> getMods() {
+		return Collections.unmodifiableList(mods);
 	}
 }

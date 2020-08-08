@@ -43,19 +43,28 @@ subprojects {
         }
     }
 
+    configurations {
+        shade
+        implementation.extendsFrom shade
+    }
+
+
     dependencies {
         // You may put jars on which you depend on in ./libs or you may define them like so..
         // compile "some.group:artifact:version:classifier"
         // compile "some.group:artifact:version"
         compileOnly 'org.spongepowered:mixin:0.8'
 
-        implementation 'io.github.lxgaming:classloaderutils:1.0.0'
-        implementation name: 'srgutils-0.2.12'
+        shade 'io.github.lxgaming:classloaderutils:1.0.0'
+        shade name: 'srgutils-0.2.12'
 
-        implementation 'net.fabricmc:fabric-loader-sat4j:2.3.5.4'
-        implementation 'com.google.jimfs:jimfs:1.2-fabric'
-        implementation 'net.fabricmc:tiny-mappings-parser:0.2.2.14'
-        implementation 'net.fabricmc:tiny-remapper:0.2.2.64'
+        shade 'net.fabricmc:fabric-loader-sat4j:2.3.5.4'
+        shade('com.google.jimfs:jimfs:1.2-fabric') {
+            exclude module: 'icu4j'
+            exclude module: 'guava'
+        }
+        shade 'net.fabricmc:tiny-mappings-parser:0.2.2.14'
+        shade 'net.fabricmc:tiny-remapper:0.2.2.64'
 
 
         // Real examples

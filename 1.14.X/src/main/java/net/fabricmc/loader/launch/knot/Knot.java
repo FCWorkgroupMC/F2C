@@ -32,7 +32,11 @@
 
 package net.fabricmc.loader.launch.knot;
 
+import cpw.mods.modlauncher.Launcher;
+import cpw.mods.modlauncher.TransformingClassLoader;
+import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
+import io.github.fcworkgroupmc.f2c.f2c.transformationservices.FabricModTransformationService;
 import io.github.lxgaming.classloader.ClassLoaderUtils;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.game.GameProvider;
@@ -47,6 +51,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
@@ -56,7 +61,7 @@ public final class Knot extends FabricLauncherBase {
 	protected Map<String, Object> properties = new HashMap<>();
 
 //	private KnotClassLoaderInterface classLoader; // F2C - don't need fabric's ClassLoader
-//	private boolean isDevelopment; // F2C - remove redundant field
+	private boolean isDevelopment;
 	private EnvType envType;
 	private final File gameJarFile;
 	private GameProvider provider;
@@ -114,7 +119,9 @@ public final class Knot extends FabricLauncherBase {
 
 //		provider.acceptArguments(args); // F2C - remove redundant method
 
-//		isDevelopment = Boolean.parseBoolean(System.getProperty("fabric.development", "false")); // F2C - remove redundant field
+//		isDevelopment = Boolean.parseBoolean(System.getProperty("fabric.development", "false"));
+		// F2C - use a custom value
+		isDevelopment = Metadata.DEV;
 
 		// Setup classloader
 		// TODO: Provide KnotCompatibilityClassLoader in non-exclusive-Fabric pre-1.13 environments?
@@ -195,7 +202,7 @@ public final class Knot extends FabricLauncherBase {
 		FabricLauncherBase.LOGGER.debug("[Knot/F2C] Proposed " + url + " to classpath.");
 //		classLoader.addURL(url);
 		try { // F2C - Use ClassLoaderUtils
-			ClassLoaderUtils.appendToClassPath(ClassLoader.getSystemClassLoader(), url);
+			ClassLoaderUtils.appendToClassPath(Launcher.class.getClassLoader(), url);
 		} catch (Throwable throwable) {
 			throwable.printStackTrace();
 		}
@@ -225,7 +232,15 @@ public final class Knot extends FabricLauncherBase {
 	@Override
 	public ClassLoader getTargetClassLoader() {
 //		return (ClassLoader) classLoader;
-		return FMLLoader.getLaunchClassLoader().getInstance(); // F2C - Use modlauncher's TransformingClassLoader
+		// F2C - Use modlauncher's TransformingClassLoader
+		if(FMLLoader.getLaunchClassLoader() != null) return FMLLoader.getLaunchClassLoader().getInstance();
+		try {
+			Field loaderField = Launcher.class.getDeclaredField("classLoader");
+			loaderField.setAccessible(true);
+			return ((TransformingClassLoader) loaderField.get(Launcher.INSTANCE)).getInstance();
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
@@ -249,8 +264,7 @@ public final class Knot extends FabricLauncherBase {
 
 	@Override
 	public boolean isDevelopment() {
-//		return isDevelopment;
-		return false; // F2C - always false
+		return isDevelopment;
 	}
 
 	@Override

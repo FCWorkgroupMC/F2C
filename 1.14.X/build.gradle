@@ -102,6 +102,9 @@ jar {
                 "MixinConnector": "io.github.fcworkgroupmc.f2c.f2c.FabricMixinConnector"
         ])
     }
+    configurations.shade.each { dep ->
+        from(project.zipTree(dep))
+    }
 }
 // Example configuration to allow publishing using the maven-publish task
 // we define a custom artifact that is sourced from the reobfJar output task

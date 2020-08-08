@@ -47,7 +47,7 @@ public class AccessWidenerLaunchPlugin implements ILaunchPluginService {
 
 	@Override
 	public boolean processClass(Phase phase, ClassNode classNode, Type classType) {
-		classNode.accept(new AccessWidenerVisitor(Opcodes.ASM8, classNode, FabricLoader.INSTANCE.getAccessWidener()));
+		classNode.accept(new AccessWidenerVisitor(Opcodes.ASM6, classNode, FabricLoader.INSTANCE.getAccessWidener()));
 		return true;
 	}
 }

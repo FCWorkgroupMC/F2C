@@ -23,6 +23,8 @@ import java.net.Proxy;
 public class Metadata {
 	public static Proxy proxy;
 
+	public static final boolean DEV = true;
+
 	static {
 		String host = System.getProperty("f2c.proxyHost");
 		String port = System.getProperty("f2c.proxyPort");

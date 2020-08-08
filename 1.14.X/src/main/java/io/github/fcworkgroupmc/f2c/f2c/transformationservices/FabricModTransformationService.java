@@ -20,10 +20,8 @@ package io.github.fcworkgroupmc.f2c.f2c.transformationservices;
 import cpw.mods.modlauncher.LaunchPluginHandler;
 import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.TransformingClassLoader;
-import cpw.mods.modlauncher.api.IEnvironment;
-import cpw.mods.modlauncher.api.ITransformationService;
-import cpw.mods.modlauncher.api.ITransformer;
-import cpw.mods.modlauncher.api.IncompatibleEnvironmentException;
+import cpw.mods.modlauncher.api.*;
+import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 import io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToSrgNameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.transformers.EntryPointBrandingTransformer;
 import io.github.lxgaming.classloader.ClassLoaderUtils;
@@ -67,6 +65,16 @@ public class FabricModTransformationService implements ITransformationService {
 	public static String mcVersion;
 	public static FabricModTransformationService instance;
 	public final List<Path> fabricMods = new ArrayList<>();
+
+	private final Map<String, ILaunchPluginService> launchPluginServices;
+	private final Map namingTable;
+	public FabricModTransformationService() {
+		if (Launcher.INSTANCE == null) {
+			throw new IllegalStateException("Launcher has not been initialized!");
+		}
+		this.launchPluginServices = getLaunchPluginServices();
+		this.namingTable = getNamingTable();
+	}
 	@Nonnull
 	@Override
 	public String name() {
@@ -75,12 +83,13 @@ public class FabricModTransformationService implements ITransformationService {
 
 	@Override
 	public void initialize(IEnvironment environment) {
+		instance = this;
 		try {
 			Path modsDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(FMLPaths.MODSDIR.relative());
 			if(Files.exists(modsDir)) {
 				Files.walk(modsDir, 1).filter(path -> {
 					String pathString = path.toAbsolutePath().normalize().toString();
-					return (pathString.endsWith(JAR_SUFFIX) || pathString.endsWith(FABRIC_MOD_SUFFIX));
+					return (pathString.endsWith(JAR_SUFFIX) || pathString.endsWith(FABRIC_MOD_SUFFIX)) && !pathString.contains("f2c-");
 				}).forEach(modPath -> {
 					ZipEntry entry = null;
 					try(JarFile jarFile = new JarFile(modPath.toFile())) {
@@ -99,8 +108,10 @@ public class FabricModTransformationService implements ITransformationService {
 						LOGGER.debug("Added mod: {}", target);
 					}
 				});
-				if(location != null && location.getPath().endsWith(".jar"))
+				if(isNotDev()) {
 					fabricMods.add(Paths.get(location.toURI()));
+					LOGGER.debug("Added mod: {}", location);
+				}
 				Runtime.getRuntime().addShutdownHook(new Thread(() -> fabricMods.forEach(p -> {
 					try {
 						Files.move(p, p.getParent().resolve(p.getFileName().toString().replace(FABRIC_MOD_SUFFIX, JAR_SUFFIX)));
@@ -125,7 +136,7 @@ public class FabricModTransformationService implements ITransformationService {
 
 	@Override
 	public void beginScanning(IEnvironment environment) {
-		if(location == null || !location.getPath().endsWith(".jar")) {
+		if(isDevelopment()) {
 			try {
 				Method addConnectorMethod = MixinPlatformManager.class.getDeclaredMethod("addConnector", String.class);
 				addConnectorMethod.setAccessible(true);
@@ -149,33 +160,24 @@ public class FabricModTransformationService implements ITransformationService {
 
 	@Override
 	public void onLoad(IEnvironment env, Set<String> otherServices) throws IncompatibleEnvironmentException {
-		instance = this;
+		location = getClass().getProtectionDomain().getCodeSource().getLocation();
 		if(!otherServices.contains("fml") || (!otherServices.contains("mixin") && !otherServices.contains("mixinbootstrap")))
 			throw new IncompatibleEnvironmentException(name() + " requires Forge and Mixin(or MixinBootstrap mod) to load");
-		location = getClass().getProtectionDomain().getCodeSource().getLocation();
-		if(location != null && location.getPath().endsWith(".jar")) {
+		if(isNotDev()) {
 			try {
-				ClassLoaderUtils.appendToClassPath(location);
+				ClassLoaderUtils.appendToClassPath(Launcher.class.getClassLoader(), location);
 
-				Constructor<?> constructor = Class.forName("cpw.mods.modlauncher.NameMappingServiceHandler").getDeclaredConstructors()[0];
-				constructor.setAccessible(true);
+				registerNameMappingService("io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToSrgNameMappingService");
+				registerNameMappingService("io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToMcpNameMappingService");
 
-				Field nameMappingServiceHandlerField = Launcher.class.getDeclaredField("nameMappingServiceHandler");
-				nameMappingServiceHandlerField.setAccessible(true);
-				nameMappingServiceHandlerField.set(Launcher.INSTANCE, constructor.newInstance());
-
-				Field launchPluginsField = Launcher.class.getDeclaredField("launchPlugins");
-				launchPluginsField.setAccessible(true);
-				launchPluginsField.set(Launcher.INSTANCE, new LaunchPluginHandler());
+				registerLaunchPluginService("io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.AccessWidenerLaunchPlugin");
+				registerLaunchPluginService("io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.PreLaunchEntrypointLaunchPlugin");
 			} catch (Throwable throwable) {
 				throwable.printStackTrace();
 			}
 		} else {
 			try {
-				Field unsafeF = Unsafe.class.getDeclaredField("theUnsafe");
-				unsafeF.setAccessible(true);
-				Unsafe unsafe = (Unsafe) unsafeF.get(null);
-
+				Unsafe unsafe = getUnsafe();
 				unsafe.ensureClassInitialized(TransformingClassLoader.class);
 				long skippedOff = unsafe.staticFieldOffset(TransformingClassLoader.class.getDeclaredField("SKIP_PACKAGE_PREFIXES"));
 				Object skippedBase = unsafe.staticFieldBase(TransformingClassLoader.class.getDeclaredField("SKIP_PACKAGE_PREFIXES"));
@@ -197,5 +199,114 @@ public class FabricModTransformationService implements ITransformationService {
 	@Override
 	public List<ITransformer> transformers() {
 		return Collections.singletonList(new EntryPointBrandingTransformer());
+	}
+
+	public boolean isDevelopment() {
+		return location == null || !location.getPath().endsWith(".jar");
+	}
+	public boolean isNotDev() {
+		return location != null && location.getPath().endsWith(".jar");
+	}
+
+	public Unsafe getUnsafe() throws NoSuchFieldException, IllegalAccessException {
+		Field unsafeF = Unsafe.class.getDeclaredField("theUnsafe");
+		unsafeF.setAccessible(true);
+		return (Unsafe) unsafeF.get(null);
+	}
+	private void registerNameMappingService(String className) throws IncompatibleEnvironmentException {
+		try {
+			Class<? extends INameMappingService> nameMappingServiceClass = (Class<? extends INameMappingService>) Class.forName(className, true, Launcher.class.getClassLoader());
+			if(isNameMappingServicePresent(nameMappingServiceClass)) {
+				LOGGER.warn("{} is already registered", nameMappingServiceClass.getSimpleName());
+				return;
+			}
+			INameMappingService service = nameMappingServiceClass.newInstance();
+			String name = service.mappingName();
+
+			Constructor<?> c = Class.forName("cpw.mods.modlauncher.NameMappingServiceDecorator").getConstructor(INameMappingService.class);
+			c.setAccessible(true);
+			namingTable.put(name, c.newInstance(service));
+
+			LOGGER.debug("Registered {} ({})", nameMappingServiceClass.getSimpleName(), name);
+		} catch (Throwable e) {
+			LOGGER.error("Encountered an error while registering {}", className, e);
+			throw new IncompatibleEnvironmentException(String.format("Failed to register %s", className));
+		}
+	}
+	private void registerLaunchPluginService(String className) throws IncompatibleEnvironmentException {
+		try {
+			Class<? extends ILaunchPluginService> launchPluginServiceClass = (Class<? extends ILaunchPluginService>) Class.forName(className, true, Launcher.class.getClassLoader());
+			if (isLaunchPluginServicePresent(launchPluginServiceClass)) {
+				LOGGER.warn("{} is already registered", launchPluginServiceClass.getSimpleName());
+				return;
+			}
+
+			ILaunchPluginService launchPluginService = launchPluginServiceClass.newInstance();
+			String pluginName = launchPluginService.name();
+			this.launchPluginServices.put(pluginName, launchPluginService);
+
+			List<Map<String, String>> mods = Launcher.INSTANCE.environment().getProperty(IEnvironment.Keys.MODLIST.get()).orElse(null);
+			if (mods != null) {
+				Map<String, String> mod = new HashMap<>();
+				mod.put("name", pluginName);
+				mod.put("type", "PLUGINSERVICE");
+				String fileName = launchPluginServiceClass.getProtectionDomain().getCodeSource().getLocation().getFile();
+				mod.put("file", fileName.substring(fileName.lastIndexOf('/')));
+				mods.add(mod);
+			}
+
+			LOGGER.debug("Registered {} ({})", launchPluginServiceClass.getSimpleName(), pluginName);
+		} catch (Throwable ex) {
+			LOGGER.error("Encountered an error while registering {}", className, ex);
+			throw new IncompatibleEnvironmentException(String.format("Failed to register %s", className));
+		}
+	}
+	private boolean isLaunchPluginServicePresent(Class<? extends ILaunchPluginService> launchPluginServiceClass) {
+		for (ILaunchPluginService launchPluginService : this.launchPluginServices.values()) {
+			if (launchPluginServiceClass.isInstance(launchPluginService)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	private boolean isNameMappingServicePresent(Class<? extends INameMappingService> launchPluginServiceClass) throws NoSuchFieldException, IllegalAccessException {
+		for (Object nameMappingServiceDecorator : this.namingTable.values()) {
+			Field f = nameMappingServiceDecorator.getClass().getDeclaredField("service");
+			f.setAccessible(true);
+			if (launchPluginServiceClass.isInstance(f.get(nameMappingServiceDecorator))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	private Map<String, ILaunchPluginService> getLaunchPluginServices() {
+		try {
+			// cpw.mods.modlauncher.Launcher.launchPlugins
+			Field launchPluginsField = Launcher.class.getDeclaredField("launchPlugins");
+			launchPluginsField.setAccessible(true);
+			LaunchPluginHandler launchPluginHandler = (LaunchPluginHandler) launchPluginsField.get(Launcher.INSTANCE);
+
+			// cpw.mods.modlauncher.LaunchPluginHandler.plugins
+			Field pluginsField = LaunchPluginHandler.class.getDeclaredField("plugins");
+			pluginsField.setAccessible(true);
+			return (Map<String, ILaunchPluginService>) pluginsField.get(launchPluginHandler);
+		} catch (Exception ex) {
+			LOGGER.error("Encountered an error while getting LaunchPluginServices", ex);
+			return null;
+		}
+	}
+	private Map<String, ?> getNamingTable() {
+		try {
+			Field namingTableField = Class.forName("cpw.mods.modlauncher.NameMappingServiceHandler").getDeclaredField("namingTable");
+			namingTableField.setAccessible(true);
+
+			Field nameMappingServiceHandlerField = Launcher.class.getDeclaredField("nameMappingServiceHandler");
+			nameMappingServiceHandlerField.setAccessible(true);
+
+			return (Map) namingTableField.get(nameMappingServiceHandlerField.get(Launcher.INSTANCE));
+		} catch (Exception ex) {
+			LOGGER.error("Encountered an error while getting NameMappingServiceHandler", ex);
+			return null;
+		}
 	}
 }

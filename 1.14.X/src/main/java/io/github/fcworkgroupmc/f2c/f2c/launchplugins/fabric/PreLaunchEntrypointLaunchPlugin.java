@@ -46,13 +46,13 @@ public class PreLaunchEntrypointLaunchPlugin implements ILaunchPluginService {
 	}
 	@Override
 	public boolean processClass(Phase phase, ClassNode classNode, Type classType) {
-		EnvironmentStrippingData stripData = new EnvironmentStrippingData(Opcodes.ASM8, FabricLauncherBase.getLauncher().getEnvironmentType().toString());
+		EnvironmentStrippingData stripData = new EnvironmentStrippingData(Opcodes.ASM6, FabricLauncherBase.getLauncher().getEnvironmentType().toString());
 		classNode.accept(stripData);
 		if (stripData.stripEntireClass()) {
 			throw new RuntimeException("Cannot load class " + classType.getClassName() + " in environment type " + FabricLauncherBase.getLauncher().getEnvironmentType());
 		}
 		if (!stripData.isEmpty()) {
-			classNode.accept(new ClassStripper(Opcodes.ASM8, classNode, stripData.getStripInterfaces(), stripData.getStripFields(), stripData.getStripMethods()));
+			classNode.accept(new ClassStripper(Opcodes.ASM6, classNode, stripData.getStripInterfaces(), stripData.getStripFields(), stripData.getStripMethods()));
 			return true;
 		}
 		return false;

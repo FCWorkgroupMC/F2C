@@ -19,6 +19,7 @@ package io.github.fcworkgroupmc.f2c.f2c.fabric;
 
 import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.api.INameMappingService;
+import io.github.fcworkgroupmc.f2c.f2c.transformationservices.FabricModTransformationService;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.EntrypointStorage;
 import net.fabricmc.loader.FabricMappingResolver;
@@ -56,6 +57,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	private FabricLoader() { }
 
 	private GameProvider provider;
+	private FabricModTransformationService service;
 	private Path gameDir;
 	public boolean lockLoading;
 	private MappingResolver mappingResolver;
@@ -68,7 +70,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	private final Map<String, LanguageAdapter> adapterMap = new HashMap<>();
 	private final EntrypointStorage entrypointStorage = new EntrypointStorage();
 
-	private static boolean funcReady;
+	public static boolean funcReady;
 	public static BiFunction<INameMappingService.Domain, String, String> remapFunc;
 	public static void funcReady() {
 		funcReady = true;
@@ -163,6 +165,9 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	public boolean hasEntrypoints(String key) {
 		return entrypointStorage.hasEntrypoints(key);
 	}
+	public void setTransformationService(FabricModTransformationService service) {
+		this.service = service;
+	}
 
 	public void loadMods() {
 		if(provider == null) throw new RuntimeException("You must to set game provider!");
@@ -173,7 +178,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 			// F2C - Remove DirectoryModCandidateFinder, use ListModCandidateFinder instead
 			resolver.addCandidateFinder(new ClasspathModCandidateFinder());
 //			resolver.addCandidateFinder(new DirectoryModCandidateFinder(getGameDir().resolve(FMLPaths.MODSDIR.relative())));
-			resolver.addCandidateFinder(new ListModCandidateFinder());
+			resolver.addCandidateFinder(new ListModCandidateFinder(service.fabricMods));
 			Map<String, ModCandidate> candidateMap = resolver.resolve(this);
 
 			String modText;

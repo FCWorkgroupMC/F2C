@@ -24,12 +24,18 @@ import net.fabricmc.loader.util.UrlUtil;
 
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class ListModCandidateFinder implements ModCandidateFinder {
+	private List<Path> mods;
+	public ListModCandidateFinder(List<Path> mods) {
+		this.mods = mods;
+	}
 	@Override
 	public void findCandidates(FabricLoader loader, Consumer<URL> urlProposer) {
-		FabricModTransformationService.instance.fabricMods.forEach((modPath) -> {
+		mods.forEach((modPath) -> {
 			if (!Files.isDirectory(modPath) && modPath.toString().endsWith(/*".jar"*/
 					FabricModTransformationService.FABRIC_MOD_SUFFIX)) { // F2C - change suffix
 				try {

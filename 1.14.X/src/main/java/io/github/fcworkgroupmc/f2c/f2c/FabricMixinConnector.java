@@ -17,6 +17,7 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
+import cpw.mods.modlauncher.TransformingClassLoader;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.ModContainer;
@@ -25,17 +26,17 @@ import net.fabricmc.loader.metadata.LoaderModMetadata;
 import org.spongepowered.asm.mixin.Mixins;
 import org.spongepowered.asm.mixin.connect.IMixinConnector;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class FabricMixinConnector implements IMixinConnector {
+	public static final List<String> SKIPPED = Arrays.asList("io.github.fcworkgroupmc.f2c.f2c.transformationservices.",
+			"net.fabricmc.loader.", "net.fabricmc.api.Environment", "net.fabricmc.api.Environment", "io.github.fcworkgroupmc.f2c.f2c.fabric.");
 	@Override
 	public void connect() {
-		FabricLoader loader = FabricLoader.INSTANCE;
-		loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
-		loader.loadMods();
-		loader.endModLoading();
-
-		FabricLoader.INSTANCE.getAccessWidener().loadFromMods();
+		TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();
+		classLoader.addTargetPackageFilter(s -> SKIPPED.stream().noneMatch(s::startsWith));
 
 		// F2C - Remove net.fabricmc.loader.launch.common.FabricMixinBootstrap
 		EnvType envType = FabricLauncherBase.getLauncher().getEnvironmentType();

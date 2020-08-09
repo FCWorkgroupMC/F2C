@@ -233,14 +233,9 @@ public final class Knot extends FabricLauncherBase {
 	public ClassLoader getTargetClassLoader() {
 //		return (ClassLoader) classLoader;
 		// F2C - Use modlauncher's TransformingClassLoader
-		if(FMLLoader.getLaunchClassLoader() != null) return FMLLoader.getLaunchClassLoader().getInstance();
-		try {
-			Field loaderField = Launcher.class.getDeclaredField("classLoader");
-			loaderField.setAccessible(true);
-			return ((TransformingClassLoader) loaderField.get(Launcher.INSTANCE)).getInstance();
-		} catch (NoSuchFieldException | IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
+		if(FMLLoader.getLaunchClassLoader() != null)
+			return FMLLoader.getLaunchClassLoader().getInstance();
+		return Thread.currentThread().getContextClassLoader();
 	}
 
 	@Override

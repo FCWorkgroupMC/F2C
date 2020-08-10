@@ -26,11 +26,11 @@ import io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToSrgName
 import io.github.fcworkgroupmc.f2c.f2c.transformers.EntryPointBrandingTransformer;
 import io.github.lxgaming.classloader.ClassLoaderUtils;
 import net.fabricmc.api.EnvType;
-import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.launch.knot.Knot;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.ModDirTransformerDiscoverer;
 import net.minecraftforge.forgespi.Environment;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -44,6 +44,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,23 +54,19 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
+import static io.github.fcworkgroupmc.f2c.f2c.Metadata.*;
+
+@SuppressWarnings("rawtypes")
 public class FabricModTransformationService implements ITransformationService {
-	public static final String FABRIC_MOD_SUFFIX = ".fabricmod";
-	public static final String JAR_SUFFIX = ".jar";
-	/** fabric mod definition(fabric.mod.json) */
-	public static final String FABRIC_MOD_DEF = "fabric.mod.json";
 	private static final Logger LOGGER = LogManager.getLogger();
 
 	private URL location;
 
-	public static String mcVersion;
-	public static FabricModTransformationService instance;
 	public final List<Path> fabricMods = new ArrayList<>();
 
 	private final Map<String, ILaunchPluginService> launchPluginServices;
 	private final Map namingTable;
 	public FabricModTransformationService() {
-		instance = this;
 		if (Launcher.INSTANCE == null) {
 			throw new IllegalStateException("Launcher has not been initialized!");
 		}
@@ -123,13 +120,7 @@ public class FabricModTransformationService implements ITransformationService {
 		} catch (Exception e) {
 			LOGGER.error("error occurred when initializing f2c service " + e);
 		}
-		try {
-			Field mcVersionF = FMLLoader.class.getDeclaredField("mcVersion");
-			mcVersionF.setAccessible(true);
-			mcVersion = (String) mcVersionF.get(null);
-		} catch (IllegalAccessException | NoSuchFieldException e) {
-			LOGGER.fatal("Error when getting minecraft version", e);
-		}
+		initMcVersion();
 		Dist dist = environment.getProperty(Environment.Keys.DIST.get()).orElseThrow(IllegalArgumentException::new);
 		new Knot(dist == Dist.DEDICATED_SERVER ? EnvType.SERVER : EnvType.CLIENT, FMLLoader.getMCPaths()[0].toFile()).init();
 	}
@@ -153,14 +144,7 @@ public class FabricModTransformationService implements ITransformationService {
 	public List<Map.Entry<String, Path>> runScan(IEnvironment environment) {
 		beginScanning(environment);
 		if(!fabricMods.isEmpty()) {
-			FabricLoader loader = FabricLoader.INSTANCE;
-			loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
-			loader.setTransformationService(this);
-			loader.loadMods();
-			loader.endModLoading();
-
-			FabricLoader.INSTANCE.getAccessWidener().loadFromMods();
-
+			FabricLoader.INSTANCE.setMods(fabricMods);
 			return fabricMods.stream().map(path -> new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
 		return Collections.emptyList();
@@ -173,7 +157,9 @@ public class FabricModTransformationService implements ITransformationService {
 			throw new IncompatibleEnvironmentException(name() + " requires Forge and Mixin(or MixinBootstrap mod) to load");
 		if(isNotDev()) {
 			try {
-				ClassLoaderUtils.appendToClassPath(Thread.currentThread().getContextClassLoader(), location);
+				ClassLoaderUtils.appendToClassPath(Launcher.class.getClassLoader(), location);
+
+				ModDirTransformerDiscoverer.getExtraLocators().add(Paths.get(location.toURI()));
 
 				registerNameMappingService("io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToSrgNameMappingService");
 				registerNameMappingService("io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToMcpNameMappingService");
@@ -183,6 +169,11 @@ public class FabricModTransformationService implements ITransformationService {
 			} catch (Throwable throwable) {
 				throwable.printStackTrace();
 			}
+		}
+		try {
+			Files.probeContentType(Paths.get(location.toURI())); // Prevent java.lang.ExceptionInInitializerError in Jimfs
+		} catch (IOException | URISyntaxException e) {
+			e.printStackTrace();
 		}
 	}
 

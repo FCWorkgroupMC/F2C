@@ -33,10 +33,7 @@
 package net.fabricmc.loader.launch.knot;
 
 import cpw.mods.modlauncher.Launcher;
-import cpw.mods.modlauncher.TransformingClassLoader;
 import io.github.fcworkgroupmc.f2c.f2c.Metadata;
-import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
-import io.github.fcworkgroupmc.f2c.f2c.transformationservices.FabricModTransformationService;
 import io.github.lxgaming.classloader.ClassLoaderUtils;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.game.GameProvider;
@@ -51,9 +48,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 

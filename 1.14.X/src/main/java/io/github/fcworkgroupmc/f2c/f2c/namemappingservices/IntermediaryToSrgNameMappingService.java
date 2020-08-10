@@ -17,14 +17,11 @@
 
 package io.github.fcworkgroupmc.f2c.f2c.namemappingservices;
 
-import com.mojang.bridge.game.GameVersion;
 import cpw.mods.modlauncher.api.INameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
-import io.github.fcworkgroupmc.f2c.f2c.transformationservices.FabricModTransformationService;
 import io.github.fcworkgroupmc.f2c.f2c.util.NetworkUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.fabricmc.mapping.tree.*;
-import net.minecraft.util.SharedConstants;
 import net.minecraftforge.srgutils.IMappingFile;
 import net.minecraftforge.srgutils.IRenamer;
 import org.apache.commons.io.IOUtils;
@@ -40,7 +37,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 

@@ -17,14 +17,42 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
+import net.minecraftforge.fml.loading.FMLLoader;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.net.URL;
 
 public class Metadata {
 	public static Proxy proxy;
+	public static String mcVersion;
+	public static final URL location = Metadata.class.getProtectionDomain().getCodeSource().getLocation();
+	public static final String FABRIC_MOD_SUFFIX = ".fabricmod";
+	public static final String JAR_SUFFIX = ".jar";
+	/** fabric mod definition(fabric.mod.json) */
+	public static final String FABRIC_MOD_DEF = "fabric.mod.json";
 
 	public static final boolean DEV = true;
+	public static boolean isDevelopment() {
+		return location == null || !location.getPath().endsWith(".jar");
+	}
+	public static boolean isNotDev() {
+		return location != null && location.getPath().endsWith(".jar");
+	}
 
+	private static final Logger LOGGER = LogManager.getLogger();
+	public static void initMcVersion() {
+		try {
+			Field mcVersionF = FMLLoader.class.getDeclaredField("mcVersion");
+			mcVersionF.setAccessible(true);
+			mcVersion = (String) mcVersionF.get(null);
+		} catch (IllegalAccessException | NoSuchFieldException e) {
+			LOGGER.fatal("Error when getting minecraft version", e);
+		}
+	}
 	static {
 		String host = System.getProperty("f2c.proxyHost");
 		String port = System.getProperty("f2c.proxyPort");

@@ -42,7 +42,7 @@ import java.nio.file.Path;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.github.fcworkgroupmc.f2c.f2c.transformationservices.FabricModTransformationService;
+import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -129,7 +129,7 @@ public final class McVersionLookup {
 
 //		return fromFileName(gameJar.getFileName().toString());
 		// F2C - use version field in FabricModTransformationService
-		return new McVersion(FabricModTransformationService.mcVersion, getRelease(FabricModTransformationService.mcVersion));
+		return new McVersion(Metadata.mcVersion, getRelease(Metadata.mcVersion));
 	}
 
 	private static McVersion fromVersionJson(InputStream is) {

@@ -19,15 +19,12 @@ package io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric;
 
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
-import net.fabricmc.loader.transformer.accesswidener.AccessWidener;
 import net.fabricmc.loader.transformer.accesswidener.AccessWidenerVisitor;
-import net.fabricmc.mappings.EntryTriple;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
-import java.nio.file.Path;
-import java.util.*;
+import java.util.EnumSet;
 
 public class AccessWidenerLaunchPlugin implements ILaunchPluginService {
 	@Override

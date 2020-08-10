@@ -19,7 +19,6 @@ package io.github.fcworkgroupmc.f2c.f2c.fabric;
 
 import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.api.INameMappingService;
-import io.github.fcworkgroupmc.f2c.f2c.transformationservices.FabricModTransformationService;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.EntrypointStorage;
 import net.fabricmc.loader.FabricMappingResolver;
@@ -28,7 +27,10 @@ import net.fabricmc.loader.api.LanguageAdapter;
 import net.fabricmc.loader.api.MappingResolver;
 import net.fabricmc.loader.api.SemanticVersion;
 import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
-import net.fabricmc.loader.discovery.*;
+import net.fabricmc.loader.discovery.ClasspathModCandidateFinder;
+import net.fabricmc.loader.discovery.ModCandidate;
+import net.fabricmc.loader.discovery.ModResolutionException;
+import net.fabricmc.loader.discovery.ModResolver;
 import net.fabricmc.loader.game.GameProvider;
 import net.fabricmc.loader.gui.FabricGuiEntry;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
@@ -39,7 +41,6 @@ import net.fabricmc.loader.util.DefaultLanguageAdapter;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.spongepowered.asm.mixin.transformer.FabricMixinTransformerProxy;
 
 import java.io.File;
 import java.io.IOException;
@@ -47,7 +48,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // F2C - reimplement net.fabricmc.loader.api.FabricLoader and delete net.fabricmc.loader.FabricLoader
@@ -57,7 +57,6 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	private FabricLoader() { }
 
 	private GameProvider provider;
-	private FabricModTransformationService service;
 	private Path gameDir;
 	public boolean lockLoading;
 	private MappingResolver mappingResolver;
@@ -66,6 +65,8 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 
 	private final Map<String, ModContainer> modMap = new HashMap<>();
 	private List<ModContainer> mods = new ArrayList<>();
+
+	private List<Path> fabricMods;
 
 	private final Map<String, LanguageAdapter> adapterMap = new HashMap<>();
 	private final EntrypointStorage entrypointStorage = new EntrypointStorage();
@@ -165,8 +166,8 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	public boolean hasEntrypoints(String key) {
 		return entrypointStorage.hasEntrypoints(key);
 	}
-	public void setTransformationService(FabricModTransformationService service) {
-		this.service = service;
+	public void setMods(List<Path> fabricMods) {
+		this.fabricMods = fabricMods;
 	}
 
 	public void loadMods() {
@@ -178,7 +179,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 			// F2C - Remove DirectoryModCandidateFinder, use ListModCandidateFinder instead
 			resolver.addCandidateFinder(new ClasspathModCandidateFinder());
 //			resolver.addCandidateFinder(new DirectoryModCandidateFinder(getGameDir().resolve(FMLPaths.MODSDIR.relative())));
-			resolver.addCandidateFinder(new ListModCandidateFinder(service.fabricMods));
+			resolver.addCandidateFinder(new ListModCandidateFinder(fabricMods));
 			Map<String, ModCandidate> candidateMap = resolver.resolve(this);
 
 			String modText;

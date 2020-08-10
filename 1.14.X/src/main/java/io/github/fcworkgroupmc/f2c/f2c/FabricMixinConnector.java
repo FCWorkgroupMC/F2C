@@ -31,12 +31,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class FabricMixinConnector implements IMixinConnector {
-	public static final List<String> SKIPPED = Arrays.asList("io.github.fcworkgroupmc.f2c.f2c.transformationservices.",
-			"net.fabricmc.loader.", "net.fabricmc.api.Environment", "net.fabricmc.api.Environment", "io.github.fcworkgroupmc.f2c.f2c.fabric.");
+	public static final List<String> SKIPPED = Arrays.asList("com.google.common.jimfs.", "io.github.fcworkgroupmc.f2c.f2c.fabric.", "net.fabricmc.loader.",
+			"org.spongepowered.asm.mixin.transformer.FabricMixinTransformerProxy", "net.fabricmc.api.EnvType", "net.fabricmc.api.Environment");
 	@Override
 	public void connect() {
 		TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();
 		classLoader.addTargetPackageFilter(s -> SKIPPED.stream().noneMatch(s::startsWith));
+
+		FabricLoader loader = FabricLoader.INSTANCE;
+		loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
+		loader.loadMods();
+		loader.endModLoading();
+
+		FabricLoader.INSTANCE.getAccessWidener().loadFromMods();
 
 		// F2C - Remove net.fabricmc.loader.launch.common.FabricMixinBootstrap
 		EnvType envType = FabricLauncherBase.getLauncher().getEnvironmentType();

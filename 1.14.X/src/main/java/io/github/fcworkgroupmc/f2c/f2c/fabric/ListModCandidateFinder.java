@@ -17,7 +17,7 @@
 
 package io.github.fcworkgroupmc.f2c.f2c.fabric;
 
-import io.github.fcworkgroupmc.f2c.f2c.transformationservices.FabricModTransformationService;
+import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import net.fabricmc.loader.discovery.ModCandidateFinder;
 import net.fabricmc.loader.util.UrlConversionException;
 import net.fabricmc.loader.util.UrlUtil;
@@ -37,7 +37,7 @@ public class ListModCandidateFinder implements ModCandidateFinder {
 	public void findCandidates(FabricLoader loader, Consumer<URL> urlProposer) {
 		mods.forEach((modPath) -> {
 			if (!Files.isDirectory(modPath) && modPath.toString().endsWith(/*".jar"*/
-					FabricModTransformationService.FABRIC_MOD_SUFFIX)) { // F2C - change suffix
+					Metadata.FABRIC_MOD_SUFFIX)) { // F2C - change suffix
 				try {
 					urlProposer.accept(UrlUtil.asUrl(modPath));
 				} catch (UrlConversionException e) {

@@ -20,6 +20,7 @@ package io.github.fcworkgroupmc.f2c.f2c;
 import net.minecraftforge.fml.loading.moddiscovery.AbstractJarFileLocator;
 import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import net.minecraftforge.forgespi.locating.IModFile;
+import org.apache.logging.log4j.LogManager;
 
 import java.net.URISyntaxException;
 import java.nio.file.Paths;

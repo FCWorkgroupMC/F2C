@@ -147,6 +147,7 @@ public class FabricModTransformationService implements ITransformationService {
 			FabricLoader.INSTANCE.setMods(fabricMods);
 			return fabricMods.stream().map(path -> new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
+		FabricLoader.INSTANCE.setMods(Collections.emptyList());
 		return Collections.emptyList();
 	}
 

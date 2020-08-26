@@ -56,9 +56,9 @@ public class IntermediaryToMcpNameMappingService implements INameMappingService 
 				case CLASS:
 					return IntermediaryToSrgNameMappingService.classes.getOrDefault(original, original);
 				case FIELD:
-					return fields.getOrDefault(original, IntermediaryToSrgNameMappingService.fields.getOrDefault(original, original));
+					return fields.getOrDefault(original, IntermediaryToSrgNameMappingService.fields.get(original));
 				case METHOD:
-					return methods.getOrDefault(original, IntermediaryToSrgNameMappingService.methods.getOrDefault(original, original));
+					return methods.getOrDefault(original, IntermediaryToSrgNameMappingService.methods.get(original));
 			}
 			return original;
 		};

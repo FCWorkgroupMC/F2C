@@ -18,8 +18,6 @@
 package io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric;
 
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
-import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
-import net.fabricmc.loader.entrypoint.minecraft.hooks.EntrypointUtils;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.transformer.ClassStripper;
 import net.fabricmc.loader.transformer.EnvironmentStrippingData;
@@ -27,16 +25,15 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
-import java.nio.file.Path;
 import java.util.EnumSet;
 
 import static io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.AccessWidenerLaunchPlugin.N;
 import static io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.AccessWidenerLaunchPlugin.Y;
 
-public class PreLaunchEntrypointLaunchPlugin implements ILaunchPluginService {
+public class F2CLaunchPlugin implements ILaunchPluginService {
 	@Override
 	public String name() {
-		return "prelaunch_entrypoint_invoker";
+		return "f2c";
 	}
 
 	@Override
@@ -56,10 +53,5 @@ public class PreLaunchEntrypointLaunchPlugin implements ILaunchPluginService {
 			return true;
 		}
 		return false;
-	}
-
-	@Override
-	public void initializeLaunch(ITransformerLoader transformerLoader, Path[] specialPaths) {
-		EntrypointUtils.invoke("preLaunch", PreLaunchEntrypoint.class, PreLaunchEntrypoint::onPreLaunch);
 	}
 }

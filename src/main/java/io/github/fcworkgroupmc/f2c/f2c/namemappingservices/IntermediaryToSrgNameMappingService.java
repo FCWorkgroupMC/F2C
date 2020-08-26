@@ -67,16 +67,15 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 				case CLASS:
 					return classes.getOrDefault(original, original);
 				case FIELD:
-					return fields.get(original);
+					return fields.getOrDefault(original, original);
 				case METHOD:
-					return methods.get(original);
+					return methods.getOrDefault(original, original);
 			}
 			return original;
 		};
 	}
 	public static void init(String version) {
 		try {
-			// Because Forge only supports release version of Minecraft, so we use GameVersion.getReleaseTarget()
 			NetworkUtil.newBuilder("https://raw.githubusercontent.com/MinecraftForge/MCPConfig/master/versions/release/" + version + "/joined.tsrg")
 				.connectAsync().thenApplyAsync(NetworkUtil.Net.Connection::asStream)
 				.thenApplyAsync(in -> {
@@ -88,7 +87,7 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 					} finally {
 						IOUtils.closeQuietly(in);
 					}
-				}).thenAcceptAsync(mapping -> {
+				}).thenAccept(mapping -> {
 					try {
 						NetworkUtil.newBuilder("https://raw.githubusercontent.com/FabricMC/intermediary/master/mappings/" + version + ".tiny")
 							.connectAsync().thenApply(NetworkUtil.Net.Connection::asReaderBuffered)
@@ -100,7 +99,6 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 									mapping.rename(new IRenamer() {
 										@Override
 										public String rename(IMappingFile.IClass value) {
-											// Always directly throw NPE
 											return classMap.get(value.getMapped()).getName("intermediary");
 										}
 										@Override

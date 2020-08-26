@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import io.github.fcworkgroupmc.f2c.f2c.FabricObfProcessor;
 import net.fabricmc.loader.api.FabricLoader;
 import org.objectweb.asm.Opcodes;
 
@@ -116,21 +117,24 @@ public class AccessWidener {
 					throw new RuntimeException(String.format("Expected (<access>\tclass\t<className>) got (%s)", line));
 				}
 
-				classAccess.put(split[2], applyAccess(access, classAccess.getOrDefault(split[2], ClassAccess.DEFAULT), null));
+				// F2C - Add remap
+				classAccess.put(FabricObfProcessor.REMAPPER.map(split[2]), applyAccess(access, classAccess.getOrDefault(FabricObfProcessor.REMAPPER.map(split[2]), ClassAccess.DEFAULT), null));
 				break;
 			case "field":
 				if (split.length != 5) {
 					throw new RuntimeException(String.format("Expected (<access>\tfield\t<className>\t<fieldName>\t<fieldDesc>) got (%s)", line));
 				}
 
-				addOrMerge(fieldAccess, new EntryTriple(split[2], split[3], split[4]), access, FieldAccess.DEFAULT);
+				// F2C - Add remap
+				addOrMerge(fieldAccess, new EntryTriple(FabricObfProcessor.REMAPPER.map(split[2]), FabricObfProcessor.REMAPPER.mapFieldName(split[2], split[3], split[4]), FabricObfProcessor.REMAPPER.mapDesc(split[4])), access, FieldAccess.DEFAULT);
 				break;
 			case "method":
 				if (split.length != 5) {
 					throw new RuntimeException(String.format("Expected (<access>\tmethod\t<className>\t<methodName>\t<methodDesc>) got (%s)", line));
 				}
 
-				addOrMerge(methodAccess, new EntryTriple(split[2], split[3], split[4]), access, MethodAccess.DEFAULT);
+				// F2C - Add remap
+				addOrMerge(methodAccess, new EntryTriple(FabricObfProcessor.REMAPPER.map(split[2]), FabricObfProcessor.REMAPPER.mapMethodName(split[2], split[3], split[4]), FabricObfProcessor.REMAPPER.mapMethodDesc(split[4])), access, MethodAccess.DEFAULT);
 				break;
 			default:
 				throw new UnsupportedOperationException("Unsupported type " + split[1]);

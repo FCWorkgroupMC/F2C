@@ -21,6 +21,8 @@ import cpw.mods.modlauncher.TransformingClassLoader;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.ModContainer;
+import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
+import net.fabricmc.loader.entrypoint.minecraft.hooks.EntrypointUtils;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.metadata.LoaderModMetadata;
 import org.spongepowered.asm.mixin.Mixins;
@@ -54,5 +56,7 @@ public class FabricMixinConnector implements IMixinConnector {
 				.flatMap((m) -> ((LoaderModMetadata) m).getMixinConfigs(envType).stream())
 				.filter(s -> s != null && !s.isEmpty())
 				.collect(Collectors.toSet()).forEach(Mixins::addConfiguration);
+
+		EntrypointUtils.invoke("preLaunch", PreLaunchEntrypoint.class, PreLaunchEntrypoint::onPreLaunch);
 	}
 }

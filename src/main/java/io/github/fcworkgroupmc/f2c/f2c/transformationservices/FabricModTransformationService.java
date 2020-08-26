@@ -21,6 +21,7 @@ import cpw.mods.modlauncher.LaunchPluginHandler;
 import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.api.*;
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
+import io.github.fcworkgroupmc.f2c.f2c.FabricObfProcessor;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToSrgNameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.transformers.EntryPointBrandingTransformer;
@@ -35,6 +36,7 @@ import net.minecraftforge.forgespi.Environment;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.objectweb.asm.ClassReader;
 import org.spongepowered.asm.launch.MixinBootstrap;
 import org.spongepowered.asm.launch.platform.MixinPlatformManager;
 
@@ -144,8 +146,23 @@ public class FabricModTransformationService implements ITransformationService {
 	public List<Map.Entry<String, Path>> runScan(IEnvironment environment) {
 		beginScanning(environment);
 		if(!fabricMods.isEmpty()) {
-			FabricLoader.INSTANCE.setMods(fabricMods);
-			return fabricMods.stream().map(path -> new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
+			List<Path> processedMods = new ArrayList<>();
+			Path processedDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(".f2c").resolve("processed");
+			try {
+				if(Files.exists(processedDir) && !Files.isDirectory(processedDir))
+					Files.delete(processedDir);
+				if(Files.notExists(processedDir))
+					Files.createDirectories(processedDir);
+			} catch (IOException e) { e.printStackTrace(); }
+			while(!FabricLoader.funcReady); // wait for the remap function ready
+			fabricMods.forEach(path -> {
+				Path processedJar = processedDir.resolve(path.getFileName());
+				LOGGER.debug("Processing {}...", path);
+				FabricObfProcessor.processJar(path, processedJar);
+				processedMods.add(processedJar);
+			});
+			FabricLoader.INSTANCE.setMods(processedMods);
+			return processedMods.stream().map(path->new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
 		FabricLoader.INSTANCE.setMods(Collections.emptyList());
 		return Collections.emptyList();
@@ -166,7 +183,7 @@ public class FabricModTransformationService implements ITransformationService {
 				registerNameMappingService("io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToMcpNameMappingService");
 
 				registerLaunchPluginService("io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.AccessWidenerLaunchPlugin");
-				registerLaunchPluginService("io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.PreLaunchEntrypointLaunchPlugin");
+				registerLaunchPluginService("io.github.fcworkgroupmc.f2c.f2c.launchplugins.fabric.F2CLaunchPlugin");
 			} catch (Throwable throwable) {
 				throwable.printStackTrace();
 			}

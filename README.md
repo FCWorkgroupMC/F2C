@@ -1,2 +1,2 @@
 # F2C
-A Forge mod provides Fabric mod compatibility
+A Forge mod that lets Fabric mods load on Forge.

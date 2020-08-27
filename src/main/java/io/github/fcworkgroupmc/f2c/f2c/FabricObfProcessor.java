@@ -69,20 +69,21 @@ public class FabricObfProcessor {
 		Enumeration<JarEntry> entries = input.entries();
 		while(entries.hasMoreElements()) {
 			JarEntry entry = entries.nextElement();
-			output.putNextEntry(entry);
+			output.putNextEntry(new JarEntry(entry.getName()));
 			if(!entry.isDirectory()) {
 				if(refMapPaths.contains(entry.getName())) {
 					JsonObject object = REMAPPER.mapRefMap(new JsonParser().parse(new InputStreamReader(input.getInputStream(entry), StandardCharsets.UTF_8)).getAsJsonObject());
 					output.write(object.toString().getBytes());
 				} else if(entry.getName().endsWith(".class")) {
 					ClassReader reader = new ClassReader(input.getInputStream(entry));
-					ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-					reader.accept(new ClassRemapper(writer, REMAPPER), ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+					ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+					reader.accept(new ClassRemapper(writer, REMAPPER), ClassReader.SKIP_DEBUG);
 					output.write(writer.toByteArray());
 				} else if(entry.getName().endsWith(Metadata.JAR_SUFFIX)) {
 					try (JarInputStream innerStream = new JarInputStream(input.getInputStream(entry));
 					     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					     JarOutputStream out = new JarOutputStream(baos, innerStream.getManifest())) {
+					     JarOutputStream out = new JarOutputStream(baos)) {
+						LOGGER.debug("Processing inner jar {}", entry.getName());
 						processInnerJar(innerStream, out);
 						output.write(baos.toByteArray());
 					}
@@ -100,7 +101,7 @@ public class FabricObfProcessor {
 		LOGGER.debug("Processing {}", input.getFileName());
 		try(JarFile jarFile = new JarFile(input.toFile())) {
 			if(Files.notExists(output)) Files.createFile(output);
-			try(JarOutputStream outputJar = new JarOutputStream(Files.newOutputStream(output), jarFile.getManifest())) {
+			try(JarOutputStream outputJar = new JarOutputStream(Files.newOutputStream(output))) {
 				processJar(jarFile, outputJar);
 			}
 		} catch (IOException e) {
@@ -114,12 +115,12 @@ public class FabricObfProcessor {
 		Files.deleteIfExists(tempJar);
 		Files.createFile(tempJar);
 
-		for(JarEntry entry = in.getNextJarEntry(); entry != null; entry = in.getNextJarEntry()) {
-			try(OutputStream os = Files.newOutputStream(tempJar);
-				JarOutputStream tempOut = new JarOutputStream(os, in.getManifest())) {
+		try(OutputStream os = Files.newOutputStream(tempJar);
+			JarOutputStream tempOut = new JarOutputStream(os)) {
+			for(JarEntry entry = in.getNextJarEntry(); entry != null; entry = in.getNextJarEntry()) {
 				tempOut.putNextEntry(entry);
 
-				IOUtils.copyLarge(in, out);
+				if(!entry.isDirectory()) IOUtils.copyLarge(in, tempOut);
 
 				tempOut.closeEntry();
 				tempOut.flush();
@@ -166,14 +167,16 @@ public class FabricObfProcessor {
 				if(!naming.equalsIgnoreCase("srg") && !naming.equalsIgnoreCase("mcp")) throw new RuntimeException("Invalid naming!");
 
 				JsonObject dataMappingMapped = new JsonObject();
-				data.get("named:intermediary").getAsJsonObject().entrySet().forEach(entry -> {
-					String key = entry.getKey();
-					JsonObject value = new JsonObject();
-					entry.getValue().getAsJsonObject().entrySet()
-							.forEach(e -> value.addProperty(e.getKey(), remapValue(e.getValue().getAsString())));
-					dataMappingMapped.add(key, value);
-				});
-				data.add("named:" + naming, dataMappingMapped);
+				if(data.has("named:intermediary")) {
+					data.get("named:intermediary").getAsJsonObject().entrySet().forEach(entry -> {
+						String key = entry.getKey();
+						JsonObject value = new JsonObject();
+						entry.getValue().getAsJsonObject().entrySet()
+								.forEach(e -> value.addProperty(e.getKey(), remapValue(e.getValue().getAsString())));
+						dataMappingMapped.add(key, value);
+					});
+					data.add("named:" + naming, dataMappingMapped);
+				}
 				mapped.add("data", data);
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -182,7 +185,10 @@ public class FabricObfProcessor {
 		}
 		private String remapValue(String s) {
 			int i = s.indexOf(';') + 1;
-			String clsDesc = s.substring(0, i);
+			boolean b = s.contains(":") && s.indexOf(':') < i;
+			String clsDesc;
+			if(b) clsDesc = "";
+			else clsDesc = s.substring(0, i);
 			String sMapped = clsDesc.isEmpty() ? "" : mapDesc(clsDesc);
 			if(s.contains("(") && s.contains(")")) { // method
 				int j = s.indexOf('(');
@@ -192,10 +198,12 @@ public class FabricObfProcessor {
 				sMapped += mapMethodDesc(s.substring(j));
 			} else if(s.contains(":")) { // field
 				int j = s.indexOf(':');
-				String fieldName = s.substring(i, j);
+				String fieldName = b ? s.substring(0, j) : s.substring(i, j);
 				sMapped += remapFunc.apply(INameMappingService.Domain.FIELD, fieldName);
 				sMapped += ':';
 				sMapped += mapDesc(s.substring(j + 1));
+			} else { // class
+				sMapped = map(s);
 			}
 			return sMapped;
 		}

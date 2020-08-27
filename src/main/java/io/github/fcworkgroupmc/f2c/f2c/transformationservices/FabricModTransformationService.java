@@ -157,7 +157,6 @@ public class FabricModTransformationService implements ITransformationService {
 			while(!FabricLoader.funcReady); // wait for the remap function ready
 			fabricMods.forEach(path -> {
 				Path processedJar = processedDir.resolve(path.getFileName());
-				LOGGER.debug("Processing {}...", path);
 				FabricObfProcessor.processJar(path, processedJar);
 				processedMods.add(processedJar);
 			});

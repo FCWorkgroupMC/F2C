@@ -154,7 +154,7 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 					}
 				}).thenAcceptAsync(v -> IntermediaryToMcpNameMappingService.init())
 					.whenComplete((v, throwable) -> FabricLoader.funcReady())
-					.get(10, TimeUnit.SECONDS);
+					.get(50, TimeUnit.SECONDS);
 		} catch (InterruptedException | ExecutionException e) {
 			LOGGER.fatal("Error when executing task", e);
 		} catch (TimeoutException e) {

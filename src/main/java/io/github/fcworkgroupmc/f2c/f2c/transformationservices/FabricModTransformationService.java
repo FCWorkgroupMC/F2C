@@ -32,6 +32,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.loading.ModDirTransformerDiscoverer;
+import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import net.minecraftforge.forgespi.Environment;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -139,6 +140,7 @@ public class FabricModTransformationService implements ITransformationService {
 			}
 		}
 
+		StartupMessageManager.addModMessage("F2C-Downloading obf mappings");
 		IntermediaryToSrgNameMappingService.init(mcVersion);
 	}
 
@@ -155,6 +157,7 @@ public class FabricModTransformationService implements ITransformationService {
 					Files.createDirectories(processedDir);
 			} catch (IOException e) { e.printStackTrace(); }
 			while(!FabricLoader.funcReady); // wait for the remap function ready
+			StartupMessageManager.addModMessage("Processing Fabric mod obf");
 			fabricMods.forEach(path -> {
 				Path processedJar = processedDir.resolve(path.getFileName());
 				FabricObfProcessor.processJar(path, processedJar);

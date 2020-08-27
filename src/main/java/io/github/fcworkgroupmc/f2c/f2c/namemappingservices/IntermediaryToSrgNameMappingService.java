@@ -22,6 +22,7 @@ import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import io.github.fcworkgroupmc.f2c.f2c.util.NetworkUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.fabricmc.mapping.tree.*;
+import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import net.minecraftforge.srgutils.IMappingFile;
 import net.minecraftforge.srgutils.IRenamer;
 import org.apache.commons.io.IOUtils;
@@ -154,10 +155,15 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 					}
 				}).thenAcceptAsync(v -> IntermediaryToMcpNameMappingService.init())
 					.whenComplete((v, throwable) -> FabricLoader.funcReady())
-					.get(50, TimeUnit.SECONDS);
+					.get(15, TimeUnit.SECONDS);
 		} catch (InterruptedException | ExecutionException e) {
 			LOGGER.fatal("Error when executing task", e);
 		} catch (TimeoutException e) {
+			StartupMessageManager.addModMessage("F2C-Downloading obf mappings-Timed out");
+			StartupMessageManager.addModMessage("F2C-Exit in 3 seconds");
+			try {
+				Thread.sleep(3000);
+			}catch(InterruptedException ignored){}
 			throw new RuntimeException("Connection timed out", e);
 		}
 	}

@@ -26,6 +26,7 @@ import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.INameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.logging.log4j.LogManager;
@@ -99,6 +100,7 @@ public class FabricObfProcessor {
 	}
 	public static void processJar(Path input, Path output) {
 		LOGGER.debug("Processing {}", input.getFileName());
+		StartupMessageManager.addModMessage("Processing Fabric mod obf-" + input.getFileName());
 		try(JarFile jarFile = new JarFile(input.toFile())) {
 			if(Files.notExists(output)) Files.createFile(output);
 			try(JarOutputStream outputJar = new JarOutputStream(Files.newOutputStream(output))) {
@@ -185,20 +187,21 @@ public class FabricObfProcessor {
 		}
 		private String remapValue(String s) {
 			int i = s.indexOf(';') + 1;
-			boolean b = s.contains(":") && s.indexOf(':') < i;
+			boolean hasNoClsDescBeforeFieldName = s.contains(":") && s.indexOf(':') < i;
+			boolean hasNoClsDescBeforeMethodName = s.contains("(") && s.contains(")") && s.indexOf('(') < i;
 			String clsDesc;
-			if(b) clsDesc = "";
+			if(hasNoClsDescBeforeFieldName || hasNoClsDescBeforeMethodName) clsDesc = "";
 			else clsDesc = s.substring(0, i);
 			String sMapped = clsDesc.isEmpty() ? "" : mapDesc(clsDesc);
 			if(s.contains("(") && s.contains(")")) { // method
 				int j = s.indexOf('(');
-				String methodName = s.substring(i, j);
+				String methodName = hasNoClsDescBeforeMethodName ? s.substring(0, j) : s.substring(i, j);
 				if(methodName.equals("<init>") || methodName.equals("<clinit>")) sMapped += methodName;
 				else sMapped += remapFunc.apply(INameMappingService.Domain.METHOD, methodName);
 				sMapped += mapMethodDesc(s.substring(j));
 			} else if(s.contains(":")) { // field
 				int j = s.indexOf(':');
-				String fieldName = b ? s.substring(0, j) : s.substring(i, j);
+				String fieldName = hasNoClsDescBeforeFieldName ? s.substring(0, j) : s.substring(i, j);
 				sMapped += remapFunc.apply(INameMappingService.Domain.FIELD, fieldName);
 				sMapped += ':';
 				sMapped += mapDesc(s.substring(j + 1));

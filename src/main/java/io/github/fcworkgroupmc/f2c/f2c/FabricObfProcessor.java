@@ -137,7 +137,7 @@ public class FabricObfProcessor {
 		Files.deleteIfExists(tempJar);
 	}
 	public static class FabricModRemapper extends Remapper {
-		private static final BiFunction<INameMappingService.Domain, String, String> remapFunc = FabricLoader.remapFunc;
+		private static final BiFunction<INameMappingService.Domain, String, String> remapFunc = Metadata.remapFunc;
 		@Override
 		public String mapMethodName(String owner, String name, String descriptor) {
 			return remapFunc.apply(INameMappingService.Domain.METHOD, name);

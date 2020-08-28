@@ -17,6 +17,8 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
+import cpw.mods.modlauncher.Launcher;
+import cpw.mods.modlauncher.api.INameMappingService;
 import net.minecraftforge.fml.loading.FMLLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,6 +27,7 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
+import java.util.function.BiFunction;
 
 public class Metadata {
 	public static Proxy proxy;
@@ -41,6 +44,13 @@ public class Metadata {
 	}
 	public static boolean isNotDev() {
 		return location != null && location.getPath().endsWith(".jar");
+	}
+
+	public static boolean funcReady;
+	public static BiFunction<INameMappingService.Domain, String, String> remapFunc;
+	public static void funcReady() {
+		funcReady = true;
+		remapFunc = Launcher.INSTANCE.environment().findNameMapping("intermediary").get();
 	}
 
 	private static final Logger LOGGER = LogManager.getLogger();

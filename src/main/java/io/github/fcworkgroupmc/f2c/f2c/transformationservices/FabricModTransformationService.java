@@ -22,6 +22,7 @@ import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.api.*;
 import cpw.mods.modlauncher.serviceapi.ILaunchPluginService;
 import io.github.fcworkgroupmc.f2c.f2c.FabricObfProcessor;
+import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToSrgNameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.transformers.EntryPointBrandingTransformer;
@@ -155,7 +156,7 @@ public class FabricModTransformationService implements ITransformationService {
 				if(Files.notExists(processedDir))
 					Files.createDirectories(processedDir);
 			} catch (IOException e) { e.printStackTrace(); }
-			while(!FabricLoader.funcReady); // wait for the remap function ready
+			while(!Metadata.funcReady); // wait for the remap function ready
 			StartupMessageManager.addModMessage("Processing Fabric mod obf");
 			fabricMods.forEach(path -> {
 				Path processedJar = processedDir.resolve(path.getFileName());

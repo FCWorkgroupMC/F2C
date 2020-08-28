@@ -71,13 +71,6 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 	private final Map<String, LanguageAdapter> adapterMap = new HashMap<>();
 	private final EntrypointStorage entrypointStorage = new EntrypointStorage();
 
-	public static boolean funcReady;
-	public static BiFunction<INameMappingService.Domain, String, String> remapFunc;
-	public static void funcReady() {
-		funcReady = true;
-		remapFunc = Launcher.INSTANCE.environment().findNameMapping("intermediary").get();
-	}
-
 	@Override
 	public <T> List<T> getEntrypoints(String key, Class<T> type) {
 		return entrypointStorage.getEntrypoints(key, type);

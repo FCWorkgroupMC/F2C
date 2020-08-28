@@ -18,6 +18,7 @@
 package io.github.fcworkgroupmc.f2c.f2c.namemappingservices;
 
 import cpw.mods.modlauncher.api.INameMappingService;
+import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import io.github.fcworkgroupmc.f2c.f2c.util.NetworkUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
@@ -154,7 +155,7 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 						LOGGER.fatal("Error when executing task", e);
 					}
 				}).thenAcceptAsync(v -> IntermediaryToMcpNameMappingService.init())
-					.whenComplete((v, throwable) -> FabricLoader.funcReady())
+					.whenComplete((v, throwable) -> Metadata.funcReady())
 					.get(15, TimeUnit.SECONDS);
 		} catch (InterruptedException | ExecutionException e) {
 			LOGGER.fatal("Error when executing task", e);

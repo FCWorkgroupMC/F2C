@@ -30,11 +30,15 @@ import io.github.lxgaming.classloader.ClassLoaderUtils;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.launch.knot.Knot;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.fml.loading.FMLCommonLaunchHandler;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.loading.ModDirTransformerDiscoverer;
+import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import net.minecraftforge.forgespi.Environment;
+import net.minecraftforge.forgespi.locating.IModFile;
+import net.minecraftforge.forgespi.locating.IModLocator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,7 +57,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
@@ -163,6 +169,31 @@ public class FabricModTransformationService implements ITransformationService {
 				FabricObfProcessor.processJar(path, processedJar);
 				processedMods.add(processedJar);
 			});
+			try {
+				final String launchTarget = environment.getProperty(IEnvironment.Keys.LAUNCHTARGET.get()).orElse("MISSING");
+				final FMLCommonLaunchHandler launchHandler = (FMLCommonLaunchHandler) environment.findLaunchHandler(launchTarget).get();
+				final Method addLibraries = FMLCommonLaunchHandler.class.getDeclaredMethod("addLibraries", List.class);
+				addLibraries.setAccessible(true);
+				final IModLocator nothingLocator = new IModLocator() {
+					@Override
+					public List<IModFile> scanMods() { return Collections.emptyList(); }
+					@Override
+					public String name() { return "nothing"; }
+					@Override
+					public Path findPath(IModFile modFile, String... path) { return null; }
+					@Override
+					public void scanFile(IModFile modFile, Consumer<Path> pathConsumer) { }
+					@Override
+					public Optional<Manifest> findManifest(Path file) { return Optional.empty(); }
+					@Override
+					public void initArguments(Map<String, ?> arguments) { }
+					@Override
+					public boolean isValid(IModFile modFile) { return true; }
+				};
+				addLibraries.invoke(launchHandler, processedMods.stream().map(path -> new ModFile(path, nothingLocator)).collect(Collectors.toList()));
+			} catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+				e.printStackTrace();
+			}
 			FabricLoader.INSTANCE.setMods(processedMods);
 			return processedMods.stream().map(path->new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}

@@ -79,7 +79,7 @@ public class FabricObfProcessor {
 				} else if(entry.getName().endsWith(".class")) {
 					ClassReader reader = new ClassReader(input.getInputStream(entry));
 					ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
-					reader.accept(new ClassRemapper(writer, REMAPPER), ClassReader.SKIP_DEBUG);
+					reader.accept(new ClassRemapper(writer, REMAPPER), 0);
 					output.write(writer.toByteArray());
 				} else if(entry.getName().endsWith(Metadata.JAR_SUFFIX)) {
 					try (JarInputStream innerStream = new JarInputStream(input.getInputStream(entry));

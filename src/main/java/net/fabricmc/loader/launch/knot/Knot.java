@@ -32,9 +32,7 @@
 
 package net.fabricmc.loader.launch.knot;
 
-import cpw.mods.modlauncher.Launcher;
 import io.github.fcworkgroupmc.f2c.f2c.Metadata;
-import io.github.lxgaming.classloader.ClassLoaderUtils;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.game.GameProvider;
 import net.fabricmc.loader.game.GameProviders;
@@ -196,11 +194,7 @@ public final class Knot extends FabricLauncherBase {
 	public void propose(URL url) {
 		FabricLauncherBase.LOGGER.debug("[Knot/F2C] Proposed " + url + " to classpath.");
 //		classLoader.addURL(url);
-		try { // F2C - Use ClassLoaderUtils
-			ClassLoaderUtils.appendToClassPath(Launcher.class.getClassLoader(), url);
-		} catch (Throwable throwable) {
-			throwable.printStackTrace();
-		}
+		// F2C - do nothing
 	}
 
 	@Override

@@ -174,22 +174,7 @@ public class FabricModTransformationService implements ITransformationService {
 				final FMLCommonLaunchHandler launchHandler = (FMLCommonLaunchHandler) environment.findLaunchHandler(launchTarget).get();
 				final Method addLibraries = FMLCommonLaunchHandler.class.getDeclaredMethod("addLibraries", List.class);
 				addLibraries.setAccessible(true);
-				final IModLocator nothingLocator = new IModLocator() {
-					@Override
-					public List<IModFile> scanMods() { return Collections.emptyList(); }
-					@Override
-					public String name() { return "nothing"; }
-					@Override
-					public Path findPath(IModFile modFile, String... path) { return null; }
-					@Override
-					public void scanFile(IModFile modFile, Consumer<Path> pathConsumer) { }
-					@Override
-					public Optional<Manifest> findManifest(Path file) { return Optional.empty(); }
-					@Override
-					public void initArguments(Map<String, ?> arguments) { }
-					@Override
-					public boolean isValid(IModFile modFile) { return true; }
-				};
+				final IModLocator nothingLocator = new NothingModLocator();
 				addLibraries.invoke(launchHandler, processedMods.stream().map(path -> new ModFile(path, nothingLocator)).collect(Collectors.toList()));
 			} catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
 				e.printStackTrace();

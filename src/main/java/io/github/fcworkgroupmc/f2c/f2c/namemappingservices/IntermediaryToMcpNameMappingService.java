@@ -56,9 +56,11 @@ public class IntermediaryToMcpNameMappingService implements INameMappingService 
 				case CLASS:
 					return IntermediaryToSrgNameMappingService.classes.getOrDefault(original, original);
 				case FIELD:
-					return fields.getOrDefault(original, IntermediaryToSrgNameMappingService.fields.getOrDefault(original, original));
+					String srg = IntermediaryToSrgNameMappingService.fields.getOrDefault(original, original);
+					return fields.getOrDefault(srg, srg);
 				case METHOD:
-					return methods.getOrDefault(original, IntermediaryToSrgNameMappingService.methods.getOrDefault(original, original));
+					srg = IntermediaryToSrgNameMappingService.methods.getOrDefault(original, original);
+					return methods.getOrDefault(srg, srg);
 			}
 			return original;
 		};
@@ -68,26 +70,17 @@ public class IntermediaryToMcpNameMappingService implements INameMappingService 
 		if(IntermediaryToSrgNameMappingService.classes.isEmpty() || IntermediaryToSrgNameMappingService.fields.isEmpty()
 				|| IntermediaryToSrgNameMappingService.methods.isEmpty())
 			throw new RuntimeException("Mappings are empty, please check your Internet connection");
-		Object2ObjectOpenHashMap<String, String> reversedFields = IntermediaryToSrgNameMappingService.fields.object2ObjectEntrySet().parallelStream()
-				.collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey, throwingMerger(), Object2ObjectOpenHashMap::new));
-		Object2ObjectOpenHashMap<String, String> reversedMethods = IntermediaryToSrgNameMappingService.methods.object2ObjectEntrySet().parallelStream()
-				.collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey, throwingMerger(), Object2ObjectOpenHashMap::new));
 		try {
 			NetworkUtil.newBuilder("http://export.mcpbot.bspk.rs/fields.csv")
 					.connectAsync().thenApply(NetworkUtil.Net.Connection::asReaderBuffered)
-					.thenAccept(reader -> reader.lines().skip(1L).map(s -> s.split(",")).forEach(names -> { // [0] is srg name, [1] is mcp name
-						fields.put(reversedFields.get(names[0]), names[1]);
-					})).get();
+					.thenAccept(reader -> reader.lines().skip(1L).map(s -> s.split(","))
+					.forEach(names -> fields.put(names[0], names[1]))).get(); // [0] is srg name, [1] is mcp name
 			NetworkUtil.newBuilder("http://export.mcpbot.bspk.rs/methods.csv")
 					.connectAsync().thenApply(NetworkUtil.Net.Connection::asReaderBuffered)
-					.thenAccept(reader -> reader.lines().skip(1L).map(s -> s.split(",")).forEach(names -> { // [0] is srg name, [1] is mcp name
-						methods.put(reversedMethods.get(names[0]), names[1]);
-					})).get();
+					.thenAccept(reader -> reader.lines().skip(1L).map(s -> s.split(","))
+					.forEach(names -> methods.put(names[0], names[1]))).get(); // [0] is srg name, [1] is mcp name
 		} catch (InterruptedException | ExecutionException e) {
 			LOGGER.fatal("Error when executing task", e);
 		}
-	}
-	private static <T> BinaryOperator<T> throwingMerger() {
-		return (u,v) -> { throw new IllegalStateException(String.format("Duplicate key %s", u)); };
 	}
 }

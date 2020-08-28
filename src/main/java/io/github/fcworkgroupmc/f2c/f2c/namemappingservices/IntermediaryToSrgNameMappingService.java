@@ -71,8 +71,9 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 					return fields.getOrDefault(original, original);
 				case METHOD:
 					return methods.getOrDefault(original, original);
+				default:
+					throw new IllegalArgumentException("Unknown domain");
 			}
-			return original;
 		};
 	}
 	public static void init(String version) {
@@ -96,8 +97,8 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 								try {
 									TinyTree intermediaryNames = TinyMappingFactory.loadWithDetection(reader);
 									Map<String, ClassDef> classMap = intermediaryNames.getClasses()
-											.stream().collect(Collectors.toMap(def -> def.getName("official"), Function.identity()));
-									mapping.rename(new IRenamer() {
+											.stream().collect(Collectors.toMap(def -> def.getName("official"), Function.identity())); // by obf name
+									return mapping.rename(new IRenamer() { // (srg - obf)
 										@Override
 										public String rename(IMappingFile.IClass value) {
 											return classMap.get(value.getMapped()).getName("intermediary");
@@ -137,8 +138,7 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 														public String getComment() { return ""; }
 													}).getName("intermediary");
 										}
-									});
-									return mapping.reverse();
+									}).reverse(); // (intermediary - srg)
 								} catch (IOException e) {
 									LOGGER.fatal("Error loading intermediary mapping file", e);
 									throw new RuntimeException("Error loading intermediary mapping file", e);
@@ -147,8 +147,8 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 								}
 							}).thenAccept(map -> map.getClasses().forEach(c -> {
 								classes.put(c.getOriginal(), c.getMapped());
-								c.getFields().forEach(f -> fields.put(f.getOriginal(), f.getMapped()));
-								c.getMethods().forEach(m -> methods.put(m.getOriginal(), m.getMapped()));
+								c.getFields().forEach(f -> {if(!f.getOriginal().equals("inherit")) fields.put(f.getOriginal(), f.getMapped());});
+								c.getMethods().forEach(m -> {if(!m.getOriginal().equals("inherit")) methods.put(m.getOriginal(), m.getMapped());});
 							})).get();
 					} catch (InterruptedException | ExecutionException e) {
 						LOGGER.fatal("Error when executing task", e);

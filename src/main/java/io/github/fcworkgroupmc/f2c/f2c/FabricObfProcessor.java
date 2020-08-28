@@ -54,6 +54,7 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+import java.util.zip.ZipEntry;
 
 public class FabricObfProcessor {
 	private static final Logger LOGGER = LogManager.getLogger();
@@ -62,10 +63,10 @@ public class FabricObfProcessor {
 		JsonObject fabricJson = new JsonParser().parse(new InputStreamReader(input.getInputStream(input.getEntry(Metadata.FABRIC_MOD_DEF)), StandardCharsets.UTF_8)).getAsJsonObject();
 		List<String> refMapPaths = Collections.emptyList();
 		if(fabricJson.has("mixins"))
-			refMapPaths = StreamSupport.stream(fabricJson.getAsJsonArray("mixins").spliterator(), true)
-					.map(JsonElement::getAsString).map(input::getEntry).map(ze -> { try {
-						return new JsonParser().parse(new InputStreamReader(input.getInputStream(ze), StandardCharsets.UTF_8)).getAsJsonObject();
-					} catch(IOException e){throw new IllegalStateException();}}).filter(obj -> obj.has("refmap"))
+			refMapPaths = StreamSupport.stream(fabricJson.getAsJsonArray("mixins").spliterator(), false)
+					.map(element -> { try {
+						return new JsonParser().parse(new InputStreamReader(input.getInputStream(input.getEntry(element.getAsString())), StandardCharsets.UTF_8)).getAsJsonObject();
+					} catch(IOException e){throw new IllegalStateException(e);}}).filter(obj -> obj.has("refmap"))
 					.map(obj -> obj.get("refmap").getAsString()).collect(Collectors.toList());
 		Enumeration<JarEntry> entries = input.entries();
 		while(entries.hasMoreElements()) {
@@ -86,6 +87,7 @@ public class FabricObfProcessor {
 					     JarOutputStream out = new JarOutputStream(baos)) {
 						LOGGER.debug("Processing inner jar {}", entry.getName());
 						processInnerJar(innerStream, out);
+						out.finish();
 						output.write(baos.toByteArray());
 					}
 				} else {
@@ -120,7 +122,7 @@ public class FabricObfProcessor {
 		try(OutputStream os = Files.newOutputStream(tempJar);
 			JarOutputStream tempOut = new JarOutputStream(os)) {
 			for(JarEntry entry = in.getNextJarEntry(); entry != null; entry = in.getNextJarEntry()) {
-				tempOut.putNextEntry(entry);
+				tempOut.putNextEntry(new ZipEntry(entry.getName()));
 
 				if(!entry.isDirectory()) IOUtils.copyLarge(in, tempOut);
 
@@ -180,6 +182,7 @@ public class FabricObfProcessor {
 					data.add("named:" + naming, dataMappingMapped);
 				}
 				mapped.add("data", data);
+				return mapped;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

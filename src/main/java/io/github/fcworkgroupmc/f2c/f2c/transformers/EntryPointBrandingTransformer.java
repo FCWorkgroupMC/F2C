@@ -48,7 +48,7 @@ public class EntryPointBrandingTransformer implements ITransformer<MethodNode> {
 	@Nonnull
 	@Override
 	public TransformerVoteResult castVote(ITransformerVotingContext context) {
-		return context.doesClassExist() ? TransformerVoteResult.YES : TransformerVoteResult.NO;
+		return TransformerVoteResult.YES;
 	}
 
 	@Nonnull

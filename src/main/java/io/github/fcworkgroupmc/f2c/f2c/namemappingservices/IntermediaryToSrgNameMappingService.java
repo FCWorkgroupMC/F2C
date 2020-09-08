@@ -106,13 +106,13 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 							try {
 								Files.copy(connection.asStream(), srgFile, StandardCopyOption.REPLACE_EXISTING);
 								Files.deleteIfExists(srgFileCompleted);
+								Files.createFile(srgFileCompleted);
 							} catch (IOException e) {
 								throw new RuntimeException(e);
 							} finally {
 								IOUtils.closeQuietly(connection);
 							}
-						}).whenComplete((v, throwable) -> {if(throwable == null) try { Files.createFile(srgFileCompleted); } catch(IOException ignored) {} })
-						.get(5, TimeUnit.SECONDS);
+						}).get(5, TimeUnit.SECONDS);
 			}
 			if(Files.notExists(intermediaryFile) || Files.notExists(intermediaryFileCompleted)) {
 				StartupMessageManager.addModMessage("F2C-Downloading intermediary obf mappings");
@@ -123,13 +123,13 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 							try {
 								Files.copy(connection.asStream(), intermediaryFile, StandardCopyOption.REPLACE_EXISTING);
 								Files.deleteIfExists(intermediaryFileCompleted);
+								Files.createFile(intermediaryFileCompleted);
 							} catch (IOException e) {
 								throw new RuntimeException(e);
 							} finally {
 								IOUtils.closeQuietly(connection);
 							}
-						}).whenComplete((v, throwable) -> {if(throwable == null) try { Files.createFile(intermediaryFileCompleted); } catch(IOException ignored) {} })
-						.get(5, TimeUnit.SECONDS);
+						}).get(5, TimeUnit.SECONDS);
 			}
 			CompletableFuture.supplyAsync(() -> {
 				try {

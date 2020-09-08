@@ -37,6 +37,7 @@ public class Metadata {
 	public static final String JAR_SUFFIX = ".jar";
 	/** fabric mod definition(fabric.mod.json) */
 	public static final String FABRIC_MOD_DEF = "fabric.mod.json";
+	public static final String F2C_DIR = ".f2c";
 
 	public static final boolean DEV = true;
 	public static boolean isDevelopment() {

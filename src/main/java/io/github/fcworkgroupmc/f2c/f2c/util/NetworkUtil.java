@@ -42,9 +42,9 @@ public class NetworkUtil {
 			DELETE,
 			HEAD,
 			OPTIONS,
-			TRACE;
+			TRACE
 		}
-		public static class Connection implements AutoCloseable {
+		public static class Connection implements Closeable {
 			private InputStream stream;
 			private final HttpURLConnection connection;
 			private Connection(HttpURLConnection connection) {
@@ -83,10 +83,11 @@ public class NetworkUtil {
 				return IOUtils.buffer(stream);
 			}
 			public BufferedReader asReaderBuffered() {
-				return IOUtils.toBufferedReader(asReader());
+				return IOUtils.buffer(asReader());
 			}
 			@Override
-			public void close() {
+			public void close() throws IOException {
+				this.stream.close();
 				this.connection.disconnect();
 			}
 		}
@@ -113,7 +114,7 @@ public class NetworkUtil {
 			return new Connection(connection);
 		}
 		public CompletableFuture<Connection> connectAsync() {
-			return CompletableFuture.supplyAsync(() -> new Connection(connection));
+			return CompletableFuture.supplyAsync(this::connect);
 		}
 		public static class NetBuilder {
 			private final URL url;
@@ -143,7 +144,7 @@ public class NetworkUtil {
 				this.method = Objects.requireNonNull(method, "method cannot be null");
 				return this;
 			}
-			public NetBuilder connectTimeout(Duration timeout) {
+			public NetBuilder timeout(Duration timeout) {
 				this.timeout = Objects.requireNonNull(timeout, "timeout cannot be null");
 				return this;
 			}

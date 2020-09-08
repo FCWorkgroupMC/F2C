@@ -31,7 +31,7 @@ apply plugin: 'idea'
 apply plugin: 'maven-publish'
 
 group = 'io.github.fcworkgroupmc.f2c'
-version = '1.14.4-0.1-alpha'
+version = '1.14.4-0.1.1-alpha'
 archivesBaseName = 'f2c'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'

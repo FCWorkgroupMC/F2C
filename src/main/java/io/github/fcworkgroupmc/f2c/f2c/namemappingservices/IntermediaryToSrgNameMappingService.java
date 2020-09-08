@@ -17,12 +17,15 @@
 
 package io.github.fcworkgroupmc.f2c.f2c.namemappingservices;
 
+import cpw.mods.modlauncher.Launcher;
+import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.INameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import io.github.fcworkgroupmc.f2c.f2c.util.NetworkUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.fabricmc.mapping.tree.*;
+import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import net.minecraftforge.srgutils.IMappingFile;
 import net.minecraftforge.srgutils.IRenamer;
@@ -32,15 +35,24 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static io.github.fcworkgroupmc.f2c.f2c.Metadata.F2C_DIR;
+import static io.github.fcworkgroupmc.f2c.f2c.Metadata.isDevelopment;
 
 public class IntermediaryToSrgNameMappingService implements INameMappingService {
 	private static final Logger LOGGER = LogManager.getLogger();
@@ -77,86 +89,132 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 			}
 		};
 	}
-	public static void init(String version) {
+	public static void init(String version, IEnvironment environment) {
 		try {
-			NetworkUtil.newBuilder("https://raw.githubusercontent.com/MinecraftForge/MCPConfig/master/versions/release/" + version + "/joined.tsrg")
-				.connectAsync().thenApplyAsync(NetworkUtil.Net.Connection::asStream)
-				.thenApplyAsync(in -> {
-					try {
-						return IMappingFile.load(in).reverse();
-					} catch (IOException e) {
-						LOGGER.fatal("Error loading srgnames mapping file", e);
-						throw new RuntimeException("Error loading srgnames mapping file", e);
-					} finally {
-						IOUtils.closeQuietly(in);
-					}
-				}).thenAccept(mapping -> {
-					try {
-						NetworkUtil.newBuilder("https://raw.githubusercontent.com/FabricMC/intermediary/master/mappings/" + version + ".tiny")
-							.connectAsync().thenApply(NetworkUtil.Net.Connection::asReaderBuffered)
-							.thenApply(reader -> {
-								try {
-									TinyTree intermediaryNames = TinyMappingFactory.loadWithDetection(reader);
-									Map<String, ClassDef> classMap = intermediaryNames.getClasses()
-											.stream().collect(Collectors.toMap(def -> def.getName("official"), Function.identity())); // by obf name
-									return mapping.rename(new IRenamer() { // (srg - obf)
-										@Override
-										public String rename(IMappingFile.IClass value) {
-											return classMap.get(value.getMapped()).getName("intermediary");
-										}
-										@Override
-										public String rename(IMappingFile.IField value) {
-											return classMap.get(value.getParent().getMapped()).getFields().stream()
-													.filter(field -> field.getName("official").equals(value.getMapped()))
-													.findAny().orElse(new FieldDef() {
-														@Override
-														public String getDescriptor(String s) {return "inherit";}
-														@Override
-														public String getName(String s) {return "inherit";}
-														@Override
-														public String getRawName(String s) {return "inherit";}
-														@Override
-														public String getComment() {return "";}
-													}).getName("intermediary");
-										}
-										@Override
-										public String rename(IMappingFile.IMethod value) {
-											return classMap.get(value.getParent().getMapped()).getMethods().stream()
-													.filter(method -> method.getName("official").equals(value.getMapped()) &&
-															method.getDescriptor("official").equals(value.getMappedDescriptor()))
-													.findAny().orElse(new MethodDef() {
-														@Override
-														public Collection<ParameterDef> getParameters() { return Collections.emptySet(); }
-														@Override
-														public Collection<LocalVariableDef> getLocalVariables() { return Collections.emptySet(); }
-														@Override
-														public String getDescriptor(String s) { return "inherit"; }
-														@Override
-														public String getName(String s) { return "inherit"; }
-														@Override
-														public String getRawName(String s) { return "inherit"; }
-														@Override
-														public String getComment() { return ""; }
-													}).getName("intermediary");
-										}
-									}).reverse(); // (intermediary - srg)
-								} catch (IOException e) {
-									LOGGER.fatal("Error loading intermediary mapping file", e);
-									throw new RuntimeException("Error loading intermediary mapping file", e);
-								} finally {
-									IOUtils.closeQuietly(reader);
+			Path mappingsDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(F2C_DIR).resolve("mappings");
+			Path srgFile = mappingsDir.resolve(version + "-joined.tsrg");
+			Path srgFileCompleted = mappingsDir.resolve(version + "-joined.tsrg.complete");
+			Path intermediaryFile = mappingsDir.resolve(version + ".tiny");
+			Path intermediaryFileCompleted = mappingsDir.resolve(version + ".tiny.complete");
+			if(Files.notExists(srgFile) || Files.notExists(srgFileCompleted)) {
+				StartupMessageManager.addModMessage("F2C-Downloading srg obf mappings");
+				NetworkUtil.newBuilder("https://raw.githubusercontent.com/MinecraftForge/MCPConfig/master/versions/release/" + version + "/joined.tsrg")
+						.timeout(Duration.ofSeconds(5L)).connectAsync()
+						.thenAccept(connection -> {
+							try {
+								Files.copy(connection.asStream(), srgFile);
+								Files.deleteIfExists(srgFileCompleted);
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							} finally {
+								IOUtils.closeQuietly(connection);
+							}
+						}).whenComplete((v, throwable) -> {if(throwable == null) try { Files.createFile(srgFileCompleted); } catch(IOException ignored) {} })
+						.get(5, TimeUnit.SECONDS);
+			}
+			if(Files.notExists(intermediaryFile) || Files.notExists(intermediaryFileCompleted)) {
+				StartupMessageManager.addModMessage("F2C-Downloading intermediary obf mappings");
+				NetworkUtil.newBuilder("https://raw.githubusercontent.com/FabricMC/intermediary/master/mappings/" + version + ".tiny")
+						.timeout(Duration.ofSeconds(5L)).connectAsync()
+						.thenAccept(connection -> {
+							try {
+								Files.copy(connection.asStream(), intermediaryFile);
+								Files.deleteIfExists(intermediaryFileCompleted);
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							} finally {
+								IOUtils.closeQuietly(connection);
+							}
+						}).whenComplete((v, throwable) -> {if(throwable == null) try { Files.createFile(intermediaryFileCompleted); } catch(IOException ignored) {} })
+						.get(5, TimeUnit.SECONDS);
+			}
+			CompletableFuture.supplyAsync(() -> {
+				try {
+					return Files.newInputStream(srgFile);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}).thenApplyAsync(in -> {
+				try {
+					return IMappingFile.load(in).reverse();
+				} catch (IOException e) {
+					LOGGER.fatal("Error loading srgnames mapping file", e);
+					throw new RuntimeException("Error loading srgnames mapping file", e);
+				} finally {
+					IOUtils.closeQuietly(in);
+				}
+			}).thenAccept(mapping -> {
+				try {
+					CompletableFuture.supplyAsync(() -> {
+						try {
+							return IOUtils.buffer(new InputStreamReader(Files.newInputStream(srgFile), StandardCharsets.UTF_8));
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					}).thenApply(reader -> {
+						try {
+							TinyTree intermediaryNames = TinyMappingFactory.loadWithDetection(reader);
+							Map<String, ClassDef> classMap = intermediaryNames.getClasses()
+									.stream().collect(Collectors.toMap(def -> def.getName("official"), Function.identity())); // by obf name
+							return mapping.rename(new IRenamer() { // (srg - obf)
+								@Override
+								public String rename(IMappingFile.IClass value) {
+									return classMap.get(value.getMapped()).getName("intermediary");
 								}
-							}).thenAccept(map -> map.getClasses().forEach(c -> {
-								classes.put(c.getOriginal(), c.getMapped());
-								c.getFields().forEach(f -> {if(!f.getOriginal().equals("inherit")) fields.put(f.getOriginal(), f.getMapped());});
-								c.getMethods().forEach(m -> {if(!m.getOriginal().equals("inherit")) methods.put(m.getOriginal(), m.getMapped());});
-							})).get();
-					} catch (InterruptedException | ExecutionException e) {
-						LOGGER.fatal("Error when executing task", e);
-					}
-				}).thenAcceptAsync(v -> IntermediaryToMcpNameMappingService.init())
-					.whenComplete((v, throwable) -> Metadata.funcReady())
-					.get(15, TimeUnit.SECONDS);
+								@Override
+								public String rename(IMappingFile.IField value) {
+									return classMap.get(value.getParent().getMapped()).getFields().stream()
+											.filter(field -> field.getName("official").equals(value.getMapped()))
+											.findAny().orElse(new FieldDef() {
+												@Override
+												public String getDescriptor(String s) {return "inherit";}
+												@Override
+												public String getName(String s) {return "inherit";}
+												@Override
+												public String getRawName(String s) {return "inherit";}
+												@Override
+												public String getComment() {return "";}
+											}).getName("intermediary");
+								}
+								@Override
+								public String rename(IMappingFile.IMethod value) {
+									return classMap.get(value.getParent().getMapped()).getMethods().stream()
+											.filter(method -> method.getName("official").equals(value.getMapped()) &&
+													method.getDescriptor("official").equals(value.getMappedDescriptor()))
+											.findAny().orElse(new MethodDef() {
+												@Override
+												public Collection<ParameterDef> getParameters() { return Collections.emptySet(); }
+												@Override
+												public Collection<LocalVariableDef> getLocalVariables() { return Collections.emptySet(); }
+												@Override
+												public String getDescriptor(String s) { return "inherit"; }
+												@Override
+												public String getName(String s) { return "inherit"; }
+												@Override
+												public String getRawName(String s) { return "inherit"; }
+												@Override
+												public String getComment() { return ""; }
+											}).getName("intermediary");
+								}
+							}).reverse(); // (intermediary - srg)
+						} catch (IOException e) {
+							LOGGER.fatal("Error loading intermediary mapping file", e);
+							throw new RuntimeException("Error loading intermediary mapping file", e);
+						} finally {
+							IOUtils.closeQuietly(reader);
+						}
+					}).thenAccept(map -> map.getClasses().forEach(c -> {
+						classes.put(c.getOriginal(), c.getMapped());
+						c.getFields().forEach(f -> {if(!f.getOriginal().equals("inherit")) fields.put(f.getOriginal(), f.getMapped());});
+						c.getMethods().forEach(m -> {if(!m.getOriginal().equals("inherit")) methods.put(m.getOriginal(), m.getMapped());});
+					})).get();
+				} catch (InterruptedException | ExecutionException e) {
+					e.printStackTrace();
+				}
+			}).thenAcceptAsync(v -> {
+				if(isDevelopment() || Launcher.INSTANCE.environment().getProperty(IEnvironment.Keys.NAMING.get()).get().equalsIgnoreCase("mcp"))
+					IntermediaryToMcpNameMappingService.init();
+			}).whenComplete((v, throwable) -> Metadata.funcReady()).get();
 		} catch (InterruptedException | ExecutionException e) {
 			LOGGER.fatal("Error when executing task", e);
 		} catch (TimeoutException e) {

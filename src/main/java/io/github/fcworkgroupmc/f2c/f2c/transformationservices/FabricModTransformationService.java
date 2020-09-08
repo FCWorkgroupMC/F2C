@@ -37,7 +37,6 @@ import net.minecraftforge.fml.loading.ModDirTransformerDiscoverer;
 import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import net.minecraftforge.forgespi.Environment;
-import net.minecraftforge.forgespi.locating.IModFile;
 import net.minecraftforge.forgespi.locating.IModLocator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -57,9 +56,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.jar.JarFile;
-import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
@@ -146,8 +143,7 @@ public class FabricModTransformationService implements ITransformationService {
 			}
 		}
 
-		StartupMessageManager.addModMessage("F2C-Downloading obf mappings");
-		IntermediaryToSrgNameMappingService.init(mcVersion);
+		IntermediaryToSrgNameMappingService.init(mcVersion, environment);
 	}
 
 	@Override
@@ -155,7 +151,7 @@ public class FabricModTransformationService implements ITransformationService {
 		beginScanning(environment);
 		if(!fabricMods.isEmpty()) {
 			List<Path> processedMods = new ArrayList<>();
-			Path processedDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(".f2c").resolve("processed");
+			Path processedDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(F2C_DIR).resolve("processed");
 			try {
 				if(Files.exists(processedDir) && !Files.isDirectory(processedDir))
 					Files.delete(processedDir);

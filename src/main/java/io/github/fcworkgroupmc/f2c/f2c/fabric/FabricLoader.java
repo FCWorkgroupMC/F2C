@@ -17,6 +17,7 @@
 
 package io.github.fcworkgroupmc.f2c.f2c.fabric;
 
+import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.EntrypointStorage;
 import net.fabricmc.loader.FabricMappingResolver;
@@ -37,13 +38,16 @@ import net.fabricmc.loader.metadata.LoaderModMetadata;
 import net.fabricmc.loader.transformer.accesswidener.AccessWidener;
 import net.fabricmc.loader.util.DefaultLanguageAdapter;
 import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -207,6 +211,11 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 		} catch (ModResolutionException e) {
 			FabricGuiEntry.displayCriticalError(e, true);
 		}
+		Metadata.addLibraries(mods.stream().filter(mod -> !mod.getInfo().getId().equals("fabricloader")).map(mod-> {
+			try {
+				return new ModFile(Paths.get(mod.getOriginUrl().toURI()), Metadata.nothingLocator);
+			} catch (URISyntaxException e) { throw new RuntimeException(e); }
+		}).collect(Collectors.toList()));
 	}
 	public void endModLoading() {
 		if(lockLoading) throw new RuntimeException("Mod loading already ended");
@@ -215,10 +224,6 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 		adapterMap.put("default", DefaultLanguageAdapter.INSTANCE);
 
 		for (ModContainer mod : mods) {
-			if (!mod.getInfo().getId().equals("fabricloader")) {
-				FabricLauncherBase.getLauncher().propose(mod.getOriginUrl());
-			}
-
 			if (!(mod.getInfo().getVersion() instanceof SemanticVersion)) { // postprocessModMetadata()
 				LOGGER.warn("Mod `" + mod.getInfo().getId() + "` (" + mod.getInfo().getVersion().getFriendlyString() + ") does not respect SemVer - comparison support is limited.");
 			} else if (((SemanticVersion) mod.getInfo().getVersion()).getVersionComponentCount() >= 4) {

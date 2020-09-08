@@ -30,7 +30,6 @@ import org.spongepowered.asm.mixin.connect.IMixinConnector;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class FabricMixinConnector implements IMixinConnector {
 	public static final List<String> SKIPPED = Arrays.asList("com.google.common.jimfs.", "io.github.fcworkgroupmc.f2c.f2c.fabric.", "net.fabricmc.",
@@ -41,8 +40,6 @@ public class FabricMixinConnector implements IMixinConnector {
 		classLoader.addTargetPackageFilter(s -> SKIPPED.stream().noneMatch(s::startsWith));
 
 		FabricLoader loader = FabricLoader.INSTANCE;
-		loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
-		loader.loadMods();
 		loader.endModLoading();
 
 		loader.getAccessWidener().loadFromMods();
@@ -54,7 +51,7 @@ public class FabricMixinConnector implements IMixinConnector {
 				.filter((m) -> m instanceof LoaderModMetadata)
 				.flatMap((m) -> ((LoaderModMetadata) m).getMixinConfigs(envType).stream())
 				.filter(s -> s != null && !s.isEmpty())
-				.collect(Collectors.toSet()).forEach(Mixins::addConfiguration);
+				.forEach(Mixins::addConfiguration);
 
 		EntrypointUtils.invoke("preLaunch", PreLaunchEntrypoint.class, PreLaunchEntrypoint::onPreLaunch);
 	}

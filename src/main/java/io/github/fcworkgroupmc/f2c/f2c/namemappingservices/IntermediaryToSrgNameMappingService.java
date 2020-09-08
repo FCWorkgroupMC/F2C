@@ -150,7 +150,7 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 				try {
 					CompletableFuture.supplyAsync(() -> {
 						try {
-							return IOUtils.buffer(new InputStreamReader(Files.newInputStream(srgFile), StandardCharsets.UTF_8));
+							return IOUtils.buffer(new InputStreamReader(Files.newInputStream(intermediaryFile), StandardCharsets.UTF_8));
 						} catch (IOException e) {
 							throw new RuntimeException(e);
 						}

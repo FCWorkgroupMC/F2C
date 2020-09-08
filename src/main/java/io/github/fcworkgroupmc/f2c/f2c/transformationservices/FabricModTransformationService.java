@@ -28,15 +28,14 @@ import io.github.fcworkgroupmc.f2c.f2c.namemappingservices.IntermediaryToSrgName
 import io.github.fcworkgroupmc.f2c.f2c.transformers.EntryPointBrandingTransformer;
 import io.github.lxgaming.classloader.ClassLoaderUtils;
 import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.launch.knot.Knot;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.loading.FMLCommonLaunchHandler;
 import net.minecraftforge.fml.loading.FMLLoader;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.loading.ModDirTransformerDiscoverer;
-import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import net.minecraftforge.fml.loading.progress.StartupMessageManager;
-import net.minecraftforge.forgespi.locating.IModLocator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -172,17 +171,11 @@ public class FabricModTransformationService implements ITransformationService {
 				FabricObfProcessor.processJar(path, processedJar);
 				processedMods.add(processedJar);
 			});
-			try {
-				final String launchTarget = environment.getProperty(IEnvironment.Keys.LAUNCHTARGET.get()).orElse("MISSING");
-				final FMLCommonLaunchHandler launchHandler = (FMLCommonLaunchHandler) environment.findLaunchHandler(launchTarget).get();
-				final Method addLibraries = FMLCommonLaunchHandler.class.getDeclaredMethod("addLibraries", List.class);
-				addLibraries.setAccessible(true);
-				final IModLocator nothingLocator = new NothingModLocator();
-				addLibraries.invoke(launchHandler, processedMods.stream().map(path -> new ModFile(path, nothingLocator)).collect(Collectors.toList()));
-			} catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-				e.printStackTrace();
-			}
-			FabricLoader.INSTANCE.setMods(processedMods);
+
+			FabricLoader loader = FabricLoader.INSTANCE;
+			loader.setMods(processedMods);
+			loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
+			loader.loadMods();
 			return processedMods.stream().map(path->new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
 		FabricLoader.INSTANCE.setMods(Collections.emptyList());

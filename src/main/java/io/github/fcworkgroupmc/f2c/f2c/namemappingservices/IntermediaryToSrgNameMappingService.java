@@ -21,7 +21,6 @@ import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.INameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.Metadata;
-import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
 import io.github.fcworkgroupmc.f2c.f2c.util.NetworkUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.fabricmc.mapping.tree.*;
@@ -39,6 +38,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
@@ -92,17 +92,19 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 	public static void init(String version, IEnvironment environment) {
 		try {
 			Path mappingsDir = environment.getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(F2C_DIR).resolve("mappings");
+			Files.createDirectories(mappingsDir);
 			Path srgFile = mappingsDir.resolve(version + "-joined.tsrg");
 			Path srgFileCompleted = mappingsDir.resolve(version + "-joined.tsrg.complete");
 			Path intermediaryFile = mappingsDir.resolve(version + ".tiny");
 			Path intermediaryFileCompleted = mappingsDir.resolve(version + ".tiny.complete");
 			if(Files.notExists(srgFile) || Files.notExists(srgFileCompleted)) {
 				StartupMessageManager.addModMessage("F2C-Downloading srg obf mappings");
+				LOGGER.debug("Downloading srg obf mappings");
 				NetworkUtil.newBuilder("https://raw.githubusercontent.com/MinecraftForge/MCPConfig/master/versions/release/" + version + "/joined.tsrg")
 						.timeout(Duration.ofSeconds(5L)).connectAsync()
 						.thenAccept(connection -> {
 							try {
-								Files.copy(connection.asStream(), srgFile);
+								Files.copy(connection.asStream(), srgFile, StandardCopyOption.REPLACE_EXISTING);
 								Files.deleteIfExists(srgFileCompleted);
 							} catch (IOException e) {
 								throw new RuntimeException(e);
@@ -114,11 +116,12 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 			}
 			if(Files.notExists(intermediaryFile) || Files.notExists(intermediaryFileCompleted)) {
 				StartupMessageManager.addModMessage("F2C-Downloading intermediary obf mappings");
+				LOGGER.debug("Downloading intermediary obf mappings");
 				NetworkUtil.newBuilder("https://raw.githubusercontent.com/FabricMC/intermediary/master/mappings/" + version + ".tiny")
 						.timeout(Duration.ofSeconds(5L)).connectAsync()
 						.thenAccept(connection -> {
 							try {
-								Files.copy(connection.asStream(), intermediaryFile);
+								Files.copy(connection.asStream(), intermediaryFile, StandardCopyOption.REPLACE_EXISTING);
 								Files.deleteIfExists(intermediaryFileCompleted);
 							} catch (IOException e) {
 								throw new RuntimeException(e);
@@ -224,6 +227,8 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 				Thread.sleep(3000);
 			}catch(InterruptedException ignored){}
 			throw new RuntimeException("Connection timed out", e);
+		} catch (IOException e) {
+			LOGGER.fatal("IO error occurs", e);
 		}
 	}
 }

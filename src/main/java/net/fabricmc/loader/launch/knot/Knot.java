@@ -56,17 +56,24 @@ public final class Knot extends FabricLauncherBase {
 //	private KnotClassLoaderInterface classLoader; // F2C - don't need fabric's ClassLoader
 	private boolean isDevelopment;
 	private EnvType envType;
-	private final File gameJarFile;
+	private File gameJarFile; // remove final access
 	private GameProvider provider;
 
-	public Knot(EnvType type, File gameJarFile) { // F2C - change access to public
+	public Knot(EnvType type) { // F2C - add constructor
+		this.envType = type;
+		setProperties(properties); // F2C - move setProperties to constructor
+	}
+	public void setGameJarFile(File gameJarFile) { // F2C - add method
+		if(this.gameJarFile != null) throw new RuntimeException("gameJarFile was already set");
+		this.gameJarFile = Objects.requireNonNull(gameJarFile, "gameJarFile cannot be null");
+	}
+
+	protected Knot(EnvType type, File gameJarFile) {
 		this.envType = type;
 		this.gameJarFile = gameJarFile;
 	}
 
 	public void init() { // F2C - change access to public
-		setProperties(properties);
-
 		// configure fabric vars
 		if (envType == null) {
 			/*String side = System.getProperty("fabric.side");

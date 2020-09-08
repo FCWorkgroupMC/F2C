@@ -36,7 +36,6 @@ import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.loading.ModDirTransformerDiscoverer;
 import net.minecraftforge.fml.loading.moddiscovery.ModFile;
 import net.minecraftforge.fml.loading.progress.StartupMessageManager;
-import net.minecraftforge.forgespi.Environment;
 import net.minecraftforge.forgespi.locating.IModLocator;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -68,6 +67,7 @@ public class FabricModTransformationService implements ITransformationService {
 
 	private URL location;
 
+	private Knot knot;
 	public final List<Path> fabricMods = new ArrayList<>();
 
 	private final Map<String, ILaunchPluginService> launchPluginServices;
@@ -85,6 +85,13 @@ public class FabricModTransformationService implements ITransformationService {
 		return "f2c";
 	}
 
+	@Override
+	public void argumentValues(OptionResult option) {
+		final String launchTarget = Launcher.INSTANCE.environment().getProperty(IEnvironment.Keys.LAUNCHTARGET.get()).orElse("MISSING");
+		final Optional<ILaunchHandlerService> launchHandler = Launcher.INSTANCE.environment().findLaunchHandler(launchTarget);
+		if (!launchHandler.isPresent()) throw new RuntimeException("Missing launch handler");
+		knot = new Knot(((FMLCommonLaunchHandler)launchHandler.get()).getDist() == Dist.DEDICATED_SERVER ? EnvType.SERVER : EnvType.CLIENT);
+	}
 	@Override
 	public void initialize(IEnvironment environment) {
 		try {
@@ -127,8 +134,8 @@ public class FabricModTransformationService implements ITransformationService {
 			LOGGER.error("error occurred when initializing f2c service " + e);
 		}
 		initMcVersion();
-		Dist dist = environment.getProperty(Environment.Keys.DIST.get()).orElseThrow(IllegalArgumentException::new);
-		new Knot(dist == Dist.DEDICATED_SERVER ? EnvType.SERVER : EnvType.CLIENT, FMLLoader.getMCPaths()[0].toFile()).init();
+		knot.setGameJarFile(FMLLoader.getMCPaths()[0].toFile());
+		knot.init();
 	}
 
 	@Override

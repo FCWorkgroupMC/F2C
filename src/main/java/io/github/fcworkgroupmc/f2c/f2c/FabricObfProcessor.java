@@ -102,7 +102,7 @@ public class FabricObfProcessor {
 	}
 	public static void processJar(Path input, Path output) {
 		LOGGER.debug("Processing {}", input.getFileName());
-		StartupMessageManager.addModMessage("Processing Fabric mod obf-" + input.getFileName());
+		StartupMessageManager.addModMessage("Processing Fabric mod obf: " + input.getFileName());
 		try(JarFile jarFile = new JarFile(input.toFile())) {
 			if(Files.notExists(output)) Files.createFile(output);
 			try(JarOutputStream outputJar = new JarOutputStream(Files.newOutputStream(output))) {

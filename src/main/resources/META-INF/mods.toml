@@ -15,7 +15,7 @@ issueTrackerURL="https://github.com/FCWorkgroupMC/F2C/issues" #optional
 modId="f2c" #mandatory
 # The version number of the mod - there's a few well known ${} variables useable here or just hardcode it
 version="${file.jarVersion}" #mandatorya
- # A display name for the mod
+# A display name for the mod
 displayName="F2C (Fabric Compatible with Forge)" #mandatory
 # A URL to query for updates for this mod. See the JSON update specification <here>
 #updateJSONURL="http://myurl.me/" #optional

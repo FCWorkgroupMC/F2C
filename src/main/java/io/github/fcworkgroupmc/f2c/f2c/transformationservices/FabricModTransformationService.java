@@ -168,7 +168,7 @@ public class FabricModTransformationService implements ITransformationService {
 			try {
 				final String launchTarget = environment.getProperty(IEnvironment.Keys.LAUNCHTARGET.get()).orElse("MISSING");
 				final FMLCommonLaunchHandler launchHandler = (FMLCommonLaunchHandler) environment.findLaunchHandler(launchTarget).get();
-				final Method addLibraries = FMLCommonLaunchHandler.class.getDeclaredMethod("addLibraries", List.class);
+				final Method addLibraries = launchHandler.getClass().getDeclaredMethod("addLibraries", List.class);
 				addLibraries.setAccessible(true);
 				final IModLocator nothingLocator = new NothingModLocator();
 				addLibraries.invoke(launchHandler, processedMods.stream().map(path -> new ModFile(path, nothingLocator)).collect(Collectors.toList()));

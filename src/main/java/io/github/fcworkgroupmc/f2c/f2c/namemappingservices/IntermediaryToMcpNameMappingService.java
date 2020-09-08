@@ -27,8 +27,6 @@ import org.apache.logging.log4j.Logger;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
-import java.util.stream.Collectors;
 
 public class IntermediaryToMcpNameMappingService implements INameMappingService {
 	private static final Logger LOGGER = LogManager.getLogger();

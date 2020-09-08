@@ -17,13 +17,13 @@
 
 package io.github.fcworkgroupmc.f2c.f2c.namemappingservices;
 
-import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.INameMappingService;
 import io.github.fcworkgroupmc.f2c.f2c.Metadata;
 import io.github.fcworkgroupmc.f2c.f2c.util.NetworkUtil;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.fabricmc.mapping.tree.*;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import net.minecraftforge.srgutils.IMappingFile;
@@ -215,7 +215,7 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 					e.printStackTrace();
 				}
 			}).thenAcceptAsync(v -> {
-				if(isDevelopment() || Launcher.INSTANCE.environment().getProperty(IEnvironment.Keys.NAMING.get()).get().equalsIgnoreCase("mcp"))
+				if(isDevelopment() || FMLEnvironment.naming.equalsIgnoreCase("mcp"))
 					IntermediaryToMcpNameMappingService.init();
 			}).whenComplete((v, throwable) -> Metadata.funcReady()).get();
 		} catch (InterruptedException | ExecutionException e) {

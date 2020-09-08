@@ -17,8 +17,6 @@
 
 package io.github.fcworkgroupmc.f2c.f2c.fabric;
 
-import cpw.mods.modlauncher.Launcher;
-import cpw.mods.modlauncher.api.INameMappingService;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.EntrypointStorage;
 import net.fabricmc.loader.FabricMappingResolver;
@@ -47,7 +45,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 // F2C - reimplement net.fabricmc.loader.api.FabricLoader and delete net.fabricmc.loader.FabricLoader

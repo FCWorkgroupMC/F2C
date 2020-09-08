@@ -17,14 +17,12 @@
 
 package io.github.fcworkgroupmc.f2c.f2c;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import cpw.mods.modlauncher.Environment;
 import cpw.mods.modlauncher.Launcher;
 import cpw.mods.modlauncher.api.IEnvironment;
 import cpw.mods.modlauncher.api.INameMappingService;
-import io.github.fcworkgroupmc.f2c.f2c.fabric.FabricLoader;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.loading.progress.StartupMessageManager;
 import org.apache.commons.io.IOUtils;
@@ -55,6 +53,8 @@ import java.util.jar.JarOutputStream;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
+
+import static io.github.fcworkgroupmc.f2c.f2c.Metadata.F2C_DIR;
 
 public class FabricObfProcessor {
 	private static final Logger LOGGER = LogManager.getLogger();
@@ -113,7 +113,7 @@ public class FabricObfProcessor {
 		}
 	}
 	public static void processInnerJar(JarInputStream in, JarOutputStream out) throws IOException {
-		Path temp = Launcher.INSTANCE.environment().getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(".f2c").resolve("tempInner");
+		Path temp = Launcher.INSTANCE.environment().getProperty(IEnvironment.Keys.GAMEDIR.get()).orElse(FMLPaths.GAMEDIR.get()).resolve(F2C_DIR).resolve("tempInner");
 		if(Files.notExists(temp)) Files.createDirectories(temp);
 		Path tempJar = temp.resolve(UUID.randomUUID().toString().replace("-", "") + ".temp");
 		Files.deleteIfExists(tempJar);
@@ -167,7 +167,7 @@ public class FabricObfProcessor {
 				mapped.add("mappings", mappingsMapped);
 
 				JsonObject data = (JsonObject) deepCopy.invoke(object.get("data").getAsJsonObject());
-				String naming = Launcher.INSTANCE.environment().getProperty(Environment.Keys.NAMING.get()).orElseThrow(() -> new RuntimeException("Naming not present"));
+				String naming = FMLEnvironment.naming;
 				if(!naming.equalsIgnoreCase("srg") && !naming.equalsIgnoreCase("mcp")) throw new RuntimeException("Invalid naming!");
 
 				JsonObject dataMappingMapped = new JsonObject();

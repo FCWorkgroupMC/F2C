@@ -35,7 +35,7 @@ public class SelfModLocator extends AbstractJarFileLocator {
 		if(Metadata.isDevelopment()) return Collections.emptyList();
 		try {
 			return Stream.of(Paths.get(Metadata.location.toURI()))
-					.map(p->new ModFile(p, this))
+					.map(p->ModFile.newFMLInstance(p, this))
 					.peek(f->modJars.compute(f, (mf, fs)->createFileSystem(mf)))
 					.collect(Collectors.toList());
 		} catch (URISyntaxException e) {

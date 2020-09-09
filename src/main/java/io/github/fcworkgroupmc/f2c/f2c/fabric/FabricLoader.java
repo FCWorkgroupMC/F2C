@@ -213,7 +213,7 @@ public class FabricLoader implements net.fabricmc.loader.api.FabricLoader {
 		}
 		Metadata.addLibraries(mods.stream().filter(mod -> !mod.getInfo().getId().equals("fabricloader")).map(mod-> {
 			try {
-				return new ModFile(Paths.get(mod.getOriginUrl().toURI()), Metadata.nothingLocator);
+				return ModFile.newFMLInstance(Paths.get(mod.getOriginUrl().toURI()), Metadata.nothingLocator);
 			} catch (URISyntaxException e) { throw new RuntimeException(e); }
 		}).collect(Collectors.toList()));
 	}

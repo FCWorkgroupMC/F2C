@@ -180,8 +180,12 @@ public class FabricModTransformationService implements ITransformationService {
 			loader.setMods(processedMods);
 			loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
 			loader.loadMods();
+			loader.endModLoading();
+
+			loader.getAccessWidener().loadFromMods();
 			return processedMods.stream().map(path->new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
+		LOGGER.info("No Fabric mods installed. fabric-loader won't start");
 		FabricLoader.INSTANCE.setMods(Collections.emptyList());
 		return Collections.emptyList();
 	}

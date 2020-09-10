@@ -39,11 +39,6 @@ public class FabricMixinConnector implements IMixinConnector {
 		TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();
 		classLoader.addTargetPackageFilter(s -> SKIPPED.stream().noneMatch(s::startsWith));
 
-		FabricLoader loader = FabricLoader.INSTANCE;
-		loader.endModLoading();
-
-		loader.getAccessWidener().loadFromMods();
-
 		// F2C - Remove net.fabricmc.loader.launch.common.FabricMixinBootstrap
 		EnvType envType = FabricLauncherBase.getLauncher().getEnvironmentType();
 		FabricLoader.INSTANCE.getAllMods().stream()

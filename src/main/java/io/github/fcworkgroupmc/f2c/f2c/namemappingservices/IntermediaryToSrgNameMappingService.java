@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -132,19 +133,11 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 						}).get(5, TimeUnit.SECONDS);
 			}
 			CompletableFuture.supplyAsync(() -> {
-				try {
-					return Files.newInputStream(srgFile);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}).thenApplyAsync(in -> {
-				try {
+				try(InputStream in = Files.newInputStream(srgFile)) {
 					return IMappingFile.load(in).reverse();
 				} catch (IOException e) {
 					LOGGER.fatal("Error loading srgnames mapping file", e);
 					throw new RuntimeException("Error loading srgnames mapping file", e);
-				} finally {
-					IOUtils.closeQuietly(in);
 				}
 			}).thenAccept(mapping -> {
 				try {
@@ -162,41 +155,82 @@ public class IntermediaryToSrgNameMappingService implements INameMappingService 
 							return mapping.rename(new IRenamer() { // (srg - obf)
 								@Override
 								public String rename(IMappingFile.IClass value) {
-									return classMap.get(value.getMapped()).getName("intermediary");
+									final ClassDef defaultClsDef = new ClassDef() {
+										private void throwEx() { throw new UnsupportedOperationException(); }
+										@Override
+										public Collection<MethodDef> getMethods() { throwEx(); return null; }
+										@Override
+										public Collection<FieldDef> getFields() { throwEx(); return null; }
+										@Override
+										public String getName(String s) { LOGGER.warn("mapping for class \"" + value.getMapped() + "\" not present"); return "MISSING"; }
+										@Override
+										public String getRawName(String s) { throwEx(); return null; }
+										@Override
+										public String getComment() { throwEx(); return null; }
+									};
+									return classMap.getOrDefault(value.getMapped(), defaultClsDef).getName("intermediary");
 								}
 								@Override
 								public String rename(IMappingFile.IField value) {
-									return classMap.get(value.getParent().getMapped()).getFields().stream()
+									final ClassDef defaultClsDef = new ClassDef() {
+										private void throwEx() { throw new UnsupportedOperationException(); }
+										@Override
+										public Collection<MethodDef> getMethods() { throwEx(); return null; }
+										@Override
+										public Collection<FieldDef> getFields() { LOGGER.warn("mapping for class \"" + value.getParent().getMapped() + "\" not present"); return Collections.emptyList(); }
+										@Override
+										public String getName(String s) { throwEx(); return null; }
+										@Override
+										public String getRawName(String s) { throwEx(); return null; }
+										@Override
+										public String getComment() { throwEx(); return null; }
+									};
+									return classMap.getOrDefault(value.getParent().getMapped(), defaultClsDef).getFields().stream()
 											.filter(field -> field.getName("official").equals(value.getMapped()))
 											.findAny().orElse(new FieldDef() {
+												private void throwEx() { throw new UnsupportedOperationException(); }
 												@Override
-												public String getDescriptor(String s) {return "inherit";}
+												public String getDescriptor(String s) { throwEx(); return null; }
 												@Override
-												public String getName(String s) {return "inherit";}
+												public String getName(String s) { return "inherit"; }
 												@Override
-												public String getRawName(String s) {return "inherit";}
+												public String getRawName(String s) { throwEx(); return null; }
 												@Override
-												public String getComment() {return "";}
+												public String getComment() { throwEx(); return null; }
 											}).getName("intermediary");
 								}
 								@Override
 								public String rename(IMappingFile.IMethod value) {
-									return classMap.get(value.getParent().getMapped()).getMethods().stream()
+									final ClassDef defaultClsDef = new ClassDef() {
+										private void throwEx() { throw new UnsupportedOperationException(); }
+										@Override
+										public Collection<MethodDef> getMethods() { LOGGER.warn("mapping for class \"" + value.getParent().getMapped() + "\" not present"); return Collections.emptyList(); }
+										@Override
+										public Collection<FieldDef> getFields() { throwEx(); return null; }
+										@Override
+										public String getName(String s) { throwEx(); return null; }
+										@Override
+										public String getRawName(String s) { throwEx(); return null; }
+										@Override
+										public String getComment() { throwEx(); return null; }
+									};
+									return classMap.getOrDefault(value.getParent().getMapped(), defaultClsDef).getMethods().stream()
 											.filter(method -> method.getName("official").equals(value.getMapped()) &&
 													method.getDescriptor("official").equals(value.getMappedDescriptor()))
 											.findAny().orElse(new MethodDef() {
+												private void throwEx() { throw new UnsupportedOperationException(); }
 												@Override
-												public Collection<ParameterDef> getParameters() { return Collections.emptySet(); }
+												public Collection<ParameterDef> getParameters() { throwEx(); return null; }
 												@Override
-												public Collection<LocalVariableDef> getLocalVariables() { return Collections.emptySet(); }
+												public Collection<LocalVariableDef> getLocalVariables() { throwEx(); return null; }
 												@Override
-												public String getDescriptor(String s) { return "inherit"; }
+												public String getDescriptor(String s) { throwEx(); return null; }
 												@Override
 												public String getName(String s) { return "inherit"; }
 												@Override
-												public String getRawName(String s) { return "inherit"; }
+												public String getRawName(String s) { throwEx(); return null; }
 												@Override
-												public String getComment() { return ""; }
+												public String getComment() { throwEx(); return null; }
 											}).getName("intermediary");
 								}
 							}).reverse(); // (intermediary - srg)

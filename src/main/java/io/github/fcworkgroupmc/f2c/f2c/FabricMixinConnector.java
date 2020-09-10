@@ -32,8 +32,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class FabricMixinConnector implements IMixinConnector {
-	public static final List<String> SKIPPED = Arrays.asList("com.google.common.jimfs.", "io.github.fcworkgroupmc.f2c.f2c.fabric.", "net.fabricmc.",
-			"org.spongepowered.asm.mixin.transformer.FabricMixinTransformerProxy", "io.github.fcworkgroupmc.f2c.f2c.Metadata");
+	public static final List<String> SKIPPED = Arrays.asList("com.google.common.jimfs.", "io.github.fcworkgroupmc.f2c.f2c.fabric.", "net.fabricmc.api.",
+			"net.fabricmc.loader", "org.spongepowered.asm.mixin.transformer.FabricMixinTransformerProxy", "io.github.fcworkgroupmc.f2c.f2c.Metadata");
 	@Override
 	public void connect() {
 		TransformingClassLoader classLoader = (TransformingClassLoader) Thread.currentThread().getContextClassLoader();

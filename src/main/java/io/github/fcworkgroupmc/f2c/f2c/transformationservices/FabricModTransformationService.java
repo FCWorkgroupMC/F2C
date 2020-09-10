@@ -117,10 +117,6 @@ public class FabricModTransformationService implements ITransformationService {
 						LOGGER.debug("Added mod: {}", target);
 					}
 				});
-				if(isNotDev()) {
-					fabricMods.add(Paths.get(location.toURI()));
-					LOGGER.debug("Added mod: {}", location);
-				}
 				Runtime.getRuntime().addShutdownHook(new Thread(() -> fabricMods.forEach(p -> {
 					try {
 						Files.move(p, p.getParent().resolve(p.getFileName().toString().replace(FABRIC_MOD_SUFFIX, JAR_SUFFIX)));
@@ -171,13 +167,25 @@ public class FabricModTransformationService implements ITransformationService {
 				FabricObfProcessor.processJar(path, processedJar);
 				processedMods.add(processedJar);
 			});
+			if(isNotDev()) {
+				try {
+					processedMods.add(Paths.get(location.toURI()));
+					LOGGER.debug("Added mod: {}", location);
+				} catch (URISyntaxException e) {
+					e.printStackTrace();
+				}
+			}
 
 			FabricLoader loader = FabricLoader.INSTANCE;
 			loader.setMods(processedMods);
 			loader.setGameProvider(FabricLauncherBase.getLauncher().getGameProvider());
 			loader.loadMods();
+			loader.endModLoading();
+
+			loader.getAccessWidener().loadFromMods();
 			return processedMods.stream().map(path->new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
+		LOGGER.info("No Fabric mods installed. fabric-loader won't start");
 		FabricLoader.INSTANCE.setMods(Collections.emptyList());
 		return Collections.emptyList();
 	}

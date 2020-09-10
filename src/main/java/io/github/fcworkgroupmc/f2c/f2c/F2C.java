@@ -23,11 +23,12 @@ import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.entrypoint.minecraft.hooks.EntrypointUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
+import net.minecraftforge.fml.event.server.FMLServerAboutToStartEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -45,8 +46,10 @@ public class F2C {
 		EntrypointUtils.invoke("main", ModInitializer.class, ModInitializer::onInitialize);
 		EntrypointUtils.invoke("client", ClientModInitializer.class, ClientModInitializer::onInitializeClient);
 	}
-	private void setupServer(FMLDedicatedServerSetupEvent event) {
-		DedicatedServer server = event.getServerSupplier().get();
+	private void setupServer(FMLServerAboutToStartEvent event) {
+		MinecraftServer s = event.getServer();
+		if(!(s instanceof DedicatedServer)) return;
+		DedicatedServer server = (DedicatedServer) s;
 
 		FabricLoader.INSTANCE.prepareModInit(FMLPaths.GAMEDIR.get(), server);
 		EntrypointUtils.invoke("main", ModInitializer.class, ModInitializer::onInitialize);

@@ -186,7 +186,7 @@ public class FabricModTransformationService implements ITransformationService {
 			return processedMods.stream().map(path->new AbstractMap.SimpleImmutableEntry<>(path.getFileName().toString(), path)).collect(Collectors.toList());
 		}
 		LOGGER.info("No Fabric mods installed. fabric-loader won't start");
-		FabricLoader.INSTANCE.setMods(Collections.emptyList());
+		disableFabricLoader = true;
 		return Collections.emptyList();
 	}
 

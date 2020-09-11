@@ -88,6 +88,8 @@ public class Metadata {
 		addLibraries(Collections.singletonList(libs));
 	}
 
+	public static boolean disableFabricLoader;
+
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static void initMcVersion() {
 		try {

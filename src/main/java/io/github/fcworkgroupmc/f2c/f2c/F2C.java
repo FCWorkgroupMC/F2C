@@ -40,6 +40,7 @@ public class F2C {
 		modEventBus.addListener(this::setupServer);
 	}
 	private void setupClient(FMLClientSetupEvent event) {
+		if(Metadata.disableFabricLoader) return;
 		Minecraft mc = event.getMinecraftSupplier().get();
 
 		FabricLoader.INSTANCE.prepareModInit(mc.gameDir.toPath(), mc);
@@ -47,6 +48,7 @@ public class F2C {
 		EntrypointUtils.invoke("client", ClientModInitializer.class, ClientModInitializer::onInitializeClient);
 	}
 	private void setupServer(FMLServerAboutToStartEvent event) {
+		if(Metadata.disableFabricLoader) return;
 		MinecraftServer s = event.getServer();
 		if(!(s instanceof DedicatedServer)) return;
 		DedicatedServer server = (DedicatedServer) s;

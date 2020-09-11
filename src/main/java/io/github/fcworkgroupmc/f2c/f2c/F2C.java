@@ -25,6 +25,7 @@ import net.fabricmc.loader.entrypoint.minecraft.hooks.EntrypointUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.dedicated.DedicatedServer;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -37,7 +38,7 @@ public class F2C {
 	public F2C() {
 		IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 		modEventBus.addListener(this::setupClient);
-		modEventBus.addListener(this::setupServer);
+		MinecraftForge.EVENT_BUS.addListener(this::setupServer);
 	}
 	private void setupClient(FMLClientSetupEvent event) {
 		if(Metadata.disableFabricLoader) return;

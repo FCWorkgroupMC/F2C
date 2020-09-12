@@ -27,8 +27,7 @@ logoFile="logo.png" #optional
 authors="XiaoPangxie732" #optional
 # The description text for the mod (multi line!) (#mandatory)
 description='''
-F2C is a Forge mod that makes Fabric mods compatible with Forge
-'''
+F2C is a Forge mod that makes Fabric mods compatible with Forge'''
 # A dependency - use the . to indicate dependency for a specific modid. Dependencies are optional.
 [[dependencies.f2c]] #optional
     # the modid of the dependency
